@@ -7,9 +7,9 @@ API (truth) → Domain (rules) → Strategies (decisions) → Service (orchestra
 1. api/ — “HOW WE TALK TO BACKEND”
 Purpose:
 
-This folder is your communication layer with backend APIs.
+This folder is communication layer with backend APIs.
 
-You NEVER put business logic here.
+=== NEVER put business logic here.
 
 What each file does:
 🔹 base.api.js
@@ -47,10 +47,10 @@ get metadata (type_category)
 
 👉 This is CRITICAL because banks change schema
 
-🧠 2. domain/ — “RULES OF YOUR SYSTEM (CORE INTELLIGENCE)”
+🧠 2. domain/ — “RULES OF THE SYSTEM (CORE INTELLIGENCE)”
 Purpose:
 
-This is where you define:
+This is where to define:
 
 “What is a valid segment?”
 
@@ -291,3 +291,15 @@ api/
 Purpose:
 Validate API response structure
 Detect breaking changes early
+
+
+/////DATA FLOW//////
+API Response
+   ↓
+schema.normalizer
+   ↓
+schema.resolver
+   ↓
+segment.model
+   ↓
+segment.api

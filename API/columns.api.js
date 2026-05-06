@@ -1,5 +1,11 @@
+import { validateColumnsResponse } from "./contracts/columns.contract";
+
 export class ColumnsAPI {
   constructor(baseAPI) {
+    if (!baseAPI) {
+      throw new Error('❌ baseAPI is required');
+    }
+
     this.baseAPI = baseAPI;
   }
 
@@ -7,13 +13,22 @@ export class ColumnsAPI {
   // Get all loan tables
   // -----------------------------
   async getLoanDataTables() {
-    return await this.baseAPI.get('/api/v1/loan-data/tables');
+    const response = await this.baseAPI.get(
+      '/api/v1/loan-data/tables'
+    );
+
+    // add contract later if backend stabilizes
+    return response;
   }
 
   // -----------------------------
   // Get columns by table name
   // -----------------------------
   async getColumns(tableName) {
+    if (!tableName) {
+      throw new Error('❌ tableName is required');
+    }
+
     const response = await this.baseAPI.get(
       '/api/v1/segments/columns',
       {
@@ -23,66 +38,9 @@ export class ColumnsAPI {
       }
     );
 
-    // Basic validation
-    if (!response?.columns) {
-      throw new Error(
-        `Failed to fetch columns for table: ${tableName}`
-      );
-    }
+    // CONTRACT = ONLY VALIDATION + NORMALIZATION
+    const normalized = validateColumnsResponse(response);
 
-    return response.columns;
-  }
-
-  // -----------------------------
-  // Helper: numeric columns
-  // -----------------------------
-  getNumeric(columns = []) {
-    return columns.filter(c => c.type_category === 'numeric');
-  }
-
-  // -----------------------------
-  // Helper: categorical columns
-  // -----------------------------
-  getCategorical(columns = []) {
-    return columns.filter(c => c.type_category === 'categorical');
-  }
-
-  // -----------------------------
-  // Helper: date columns
-  // -----------------------------
-  getDate(columns = []) {
-    return columns.filter(c => c.type_category === 'date');
-  }
-
-  // -----------------------------
-  // Helper: pick random item
-  // -----------------------------
-  pickRandom(arr = []) {
-    if (!arr.length) {
-      throw new Error('Cannot pick random item from empty array');
-    }
-
-    return arr[Math.floor(Math.random() * arr.length)];
-  }
-
-  // -----------------------------
-  // Smart column selection
-  // -----------------------------
-  pickSmartAttributes(columns = []) {
-    if (!columns.length) {
-      throw new Error('No columns provided for smart selection');
-    }
-
-    const numeric = this.getNumeric(columns);
-    const categorical = this.getCategorical(columns);
-
-    if (!numeric.length || !categorical.length) {
-      throw new Error('Not enough columns to build segment');
-    }
-
-    return {
-      numeric: this.pickRandom(numeric),
-      categorical: this.pickRandom(categorical)
-    };
+    return normalized;
   }
 }

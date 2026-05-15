@@ -15,20 +15,25 @@ export class BaseAPI {
     this.enableLogging = true;
     this.logger = logger;
 
-    //  global correlation id (optional)
+    // global correlation id (optional)
     this.globalRequestId = null;
   }
 
   // -----------------------------
-  // INIT
+  // INIT – now accepts an initial token
   // -----------------------------
-  async init() {
+  async init(initialToken = null) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (initialToken) {
+      headers['Authorization'] = `Bearer ${initialToken}`;
+      this.token = initialToken;
+    }
     this.requestContext = await request.newContext({
       baseURL: this.baseURL,
-      extraHTTPHeaders: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      extraHTTPHeaders: headers,
       ignoreHTTPSErrors: true,
       timeout: this.defaultTimeout,
     });
@@ -154,7 +159,7 @@ export class BaseAPI {
       const responseBody = await this.parseResponse(res);
 
       // -----------------------------
-      // STRUCTURED LOGGING (UPGRADED)
+      // STRUCTURED LOGGING
       // -----------------------------
       if (this.enableLogging) {
         this.logger.info({
@@ -181,11 +186,9 @@ export class BaseAPI {
         error.method = method;
         error.payload = options.body;
         error.response = responseBody;
-
-        // attach trace metadata
         error.requestId = requestId;
         error.duration = duration;
-          console.error('❌ API ERROR BODY:', JSON.stringify(responseBody, null, 2));
+        console.error('❌ API ERROR BODY:', JSON.stringify(responseBody, null, 2));
         throw error;
       }
 

@@ -1,60 +1,42 @@
 // api/contracts/preview.contract.js
 
+// api/contracts/preview.contract.js
+//
+// Real backend response shape:
+// {
+//   success:          true,
+//   message:          "Preview complete: 77 rows estimated",
+//   estimated_rows:   77,
+//   attribute_counts: { education_level: 6, customer_region: 15 },
+//   sample_rows:      [{ education_level, customer_region, sum_*, loan_count }],
+//   error:            null
+// }
+
 function isValidNumber(value) {
   return typeof value === 'number' && !isNaN(value);
 }
 
-function isValidString(value) {
-  return typeof value === 'string' && value.trim().length > 0;
-}
-
-// -----------------------------
-// Validate Preview Response
-// -----------------------------
 export function validatePreviewResponse(data) {
   if (!data || typeof data !== 'object') {
     throw new Error('❌ Preview response must be an object');
   }
 
-  if (!Array.isArray(data.data)) {
-    throw new Error('❌ Preview data must be an array');
+  // Backend returns estimated_rows (not total_records or data[])
+  if (data.estimated_rows !== undefined && !isValidNumber(data.estimated_rows)) {
+    throw new Error('❌ estimated_rows must be a number');
   }
 
-  if (data.data.length === 0) {
-    console.warn('⚠️ Preview returned empty dataset');
+  if (data.sample_rows !== undefined && !Array.isArray(data.sample_rows)) {
+    throw new Error('❌ sample_rows must be an array');
   }
 
-  // Validate each row
-  data.data.forEach((row, rowIndex) => {
-    if (!row || typeof row !== 'object') {
-      throw new Error(`❌ Row ${rowIndex} is invalid`);
-    }
-
-    Object.entries(row).forEach(([key, value]) => {
-      // allow primitives only
-      const valid =
-        isValidString(value) ||
-        isValidNumber(value) ||
-        value === null;
-
-      if (!valid) {
-        throw new Error(
-          `❌ Invalid value in row ${rowIndex}, column ${key}`
-        );
-      }
-    });
-  });
-
-  // Validate metadata
-  if (
-    data.total_records !== undefined &&
-    !isValidNumber(data.total_records)
-  ) {
-    throw new Error('❌ total_records must be a number');
-  }
-
+  // Normalise to a consistent shape our tests can rely on
+  // regardless of which backend field name is used
   return {
-    data: data.data,
-    total_records: data.total_records || data.data.length
+    // unified field — works whether backend sends estimated_rows or total_records
+    total_records: data.estimated_rows ?? data.total_records ?? 0,
+    data:          data.sample_rows    ?? data.data          ?? [],
+    attribute_counts: data.attribute_counts ?? {},
+    message:          data.message         ?? '',
   };
 }

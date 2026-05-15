@@ -23,6 +23,14 @@ import { TableResolver }            from '../api/resolver/table.resolver.js';
 import { ColumnsAPI }               from '../api/columns.api.js';
 import { BaseAPI }                  from '../api/base.api.js';
 import { hashObject, formatTimestamp } from '../utils/helpers.js';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WHITELIST_PATH = path.resolve(__dirname, '../utils/metrics-config.json');
 
 export class SegmentBuilderService {
 
@@ -123,7 +131,7 @@ export class SegmentBuilderService {
   }
 
   // ============================================================
-  // BUILD  (async — fixed from original sync version)
+  // BUILD 
   // ============================================================
   async build() {
     if (!this._initialized) {
@@ -197,6 +205,34 @@ export class SegmentBuilderService {
         throw new Error('❌ No attributes selected');
       }
 
+      // STEP 4a: FETCH DISTINCT VALUES for selected categorical columns
+      // The distinctValuesMap must be populated BEFORE binning —
+      // bin.strategy uses it to build selected_values for each categorical attr.
+      // Without this, all categoricals get skipped (NO_DISTINCT_VALUES warning).
+      const fetchedDistinctValues = { ...this.distinctValuesMap };
+
+      for (const col of selectedCategorical) {
+        if (!fetchedDistinctValues[col.name]) {
+          try {
+            const result = await this.columnsAPI.getDistinctValues({
+              table_name:  this.table,
+              column_name: col.name,
+              limit:       100,
+            });
+            // getDistinctValues returns { values: [...], total }
+            // values are already cleaned (nulls removed, deduped)
+            fetchedDistinctValues[col.name] = result?.values ?? [];
+          } catch (err) {
+            this.logger?.warn?.({
+              type:   'DISTINCT_VALUES_FETCH_FAILED',
+              column: col.name,
+              error:  err.message,
+            });
+            fetchedDistinctValues[col.name] = [];
+          }
+        }
+      }
+
       // STEP 4: BINNING
       const binStrategy = new BinStrategy(
         { numeric: selectedNumeric, categorical: selectedCategorical },
@@ -205,7 +241,7 @@ export class SegmentBuilderService {
           logger: this.logger,
           config: {
             ...this.config,
-            distinctValuesMap: this.distinctValuesMap,
+            distinctValuesMap: fetchedDistinctValues,
             selectedValuesMap: this.selectedValuesMap
           }
         }
@@ -220,7 +256,7 @@ export class SegmentBuilderService {
       this.seed = binStrategy.seed;
       audit.steps.binning = binAudit;
 
-      // FIX: only throw if BOTH are empty.
+      // only throw if BOTH are empty.
       // It's valid to have only numeric bins (no distinctValues for any categorical).
       // The segment model only requires at least one attribute total.
       if (!numericBins.length && !categoricalBins.length) {
@@ -228,9 +264,33 @@ export class SegmentBuilderService {
       }
 
       // STEP 5: METRIC SELECTION
+      // Pass only numeric columns to MetricSelector
+      // Prevents SUM/AVG/MIN/MAX being applied to categorical/text columns
+      // which causes: "function sum(text) does not exist" backend error
+      const numericSchema = schema.filter(c => c.type === 'numeric');
+      if (!numericSchema.length) throw new Error('❌ No numeric columns available for metrics');
+
+      let allowedMetrics=null;
+      try {
+        const whitelistMetrics = JSON.parse(readFileSync(WHITELIST_PATH, 'utf-8'));
+        allowedMetrics = whitelistMetrics[this.table] || null;
+        if (allowedMetrics && allowedMetrics.length) {
+          this.logger?.info?.({ type: 'METRIC_WHITELIST_LOADED', table: this.table, count: allowedMetrics.length });
+        }
+      } catch (err) {
+        this.logger?.warn?.({ type: 'METRIC_WHITELIST_FAILED', error: err.message });
+      }
+
       const metricSelector = new MetricSelector(
-        schema,
-        { seed: this.seed, logger: this.logger, config: this.config }
+        numericSchema,
+        { seed: this.seed, 
+          logger: this.logger, 
+          config: {
+            ...this.config ,
+            allowedMetrics   // pass the whitelist (null = allow all)
+
+          }
+          }
       );
 
       const { metrics, audit: metricAudit } = metricSelector.select(

@@ -1,14 +1,16 @@
 // domain/schema/schema.normalizer.js
 
 // -----------------------------
-// BLOCKED FIELDS (GLOBAL RULE)=>Sensitive fields that should be excluded from selection
+// BLOCKED FIELDS (GLOBAL RULE)
+// Sensitive fields excluded from selection
 // -----------------------------
 const BLOCKED_FIELDS = Object.freeze([
   'account_number',
   'phone_number',
   'tin_number',
   'email',
-  'customer_id'
+  'customer_id',
+  'loan_id',        // UUID column — too high cardinality, not useful for segmentation
 ]);
 
 // -----------------------------
@@ -16,34 +18,30 @@ const BLOCKED_FIELDS = Object.freeze([
 // -----------------------------
 const TYPE_ALIASES = Object.freeze({
   // numeric
-  bigint: 'numeric',
-  int: 'numeric',
+  bigint:  'numeric',
+  int:     'numeric',
   integer: 'numeric',
-  float: 'numeric',
-  double: 'numeric',
+  float:   'numeric',
+  double:  'numeric',
   decimal: 'numeric',
-  number: 'numeric',
+  number:  'numeric',
 
   // categorical
-  text: 'categorical',
+  text:    'categorical',
   varchar: 'categorical',
-  char: 'categorical',
-  string: 'categorical',
+  char:    'categorical',
+  string:  'categorical',
 
   // date
-  date: 'date',
+  date:      'date',
   timestamp: 'date',
-  datetime: 'date'
+  datetime:  'date'
 });
 
 // -----------------------------
 // SUPPORTED TYPES
 // -----------------------------
-const VALID_TYPES = Object.freeze([
-  'numeric',
-  'categorical',
-  'date'
-]);
+const VALID_TYPES = Object.freeze(['numeric', 'categorical', 'date']);
 
 // -----------------------------
 // Normalize single column
@@ -51,45 +49,43 @@ const VALID_TYPES = Object.freeze([
 function normalizeColumn(raw) {
   if (!raw || typeof raw !== 'object') return null;
 
- //Extract column name with multiple fallbacks
-  const rawName  =
-    raw.name ||
+  // Extract column name with multiple fallbacks
+  const rawName =
+    raw.name        ||
     raw.column_name ||
     raw.field_name;
 
-    // -----------------------------
-  // Validation: Name must be a non-empty string
-  // -----------------------------
-   const cleanName = rawName ? String(rawName).trim() : ''; 
+  // FIX: cleanName declared at function scope — was inside if-block before
+  // which caused ReferenceError when used in the return statement below
+  const cleanName = rawName ? String(rawName).trim() : '';
 
+  // Validation: name must be a non-empty string
   if (!cleanName) {
-      console.warn('⚠️ Invalid column name:', rawName);
-      return null;
+    console.warn('⚠️ Invalid column name:', rawName);
+    return null;
   }
-   // Even if name is invalid, we still want to check for blocked fields
-   const normalizedName = cleanName.toLowerCase();
-  if (BLOCKED_FIELDS.includes(normalizedName)) {
-         return null;
-       }
-  
 
-  // -----------------------------
-  // TYPE INFERENCE
-  // -----------------------------
-   // Extract type with multiple fallbacks
-    let type =
+  // FIX: blocked fields check moved here — after name is confirmed valid
+  // Previously this was nested inside the invalid-name guard (unreachable)
+  if (BLOCKED_FIELDS.includes(cleanName)) {
+    return null;
+  }
+
+  // Extract type with multiple fallbacks
+  let type =
     raw.type_category ||
     raw.type          ||
     raw.dataType;
 
+  // -----------------------------
+  // TYPE INFERENCE
+  // -----------------------------
   if (type) {
     type = String(type).toLowerCase().trim();
     type = TYPE_ALIASES[type] || type;
   }
 
-  // -----------------------------
-  // Type stronger fallback inference from data_type
-  // -----------------------------
+  // Stronger fallback inference from data_type field
   if (!type && raw.data_type) {
     const dt = String(raw.data_type).toLowerCase();
 
@@ -105,13 +101,10 @@ function normalizeColumn(raw) {
   // -----------------------------
   // VALIDATION GUARD
   // -----------------------------
-  if (!type) return null;
+  if (!type)                    return null;
   if (!VALID_TYPES.includes(type)) return null;
 
-  return Object.freeze({
-    name: cleanName,
-    type
-  });
+  return Object.freeze({ name: cleanName, type });
 }
 
 // -----------------------------
@@ -126,10 +119,8 @@ export function normalizeSchema(columns = []) {
     .map(normalizeColumn)
     .filter(Boolean);
 
-  // -----------------------------
-  // Prevents duplicate schema
-  // -----------------------------
-  const seen = new Set();
+  // Deduplication — last-write-wins is intentional (stable sort order)
+  const seen   = new Set();
   const unique = [];
 
   for (const col of normalized) {

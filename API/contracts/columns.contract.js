@@ -1,30 +1,26 @@
+// ============================================================
 // api/contracts/columns.contract.js
+// PURPOSE:
+//   Validate raw API columns response shape ONLY.
+//
+// IMPORTANT:
+//   Type normalization is handled centrally by:
+//     domain/schema/schema.normalizer.js
+//
+//   This contract layer should NEVER reject valid aliases.
+// ============================================================
 
-const ALLOWED_TYPES = ['numeric', 'categorical', 'date'];
+import { normalizeSchema } from '../../Domain/schema/schema.normalizer.js';
 
-function normalizeColumn(raw) {
-  const name = raw.name || raw.column_name || raw.field_name;
-  const type = raw.type_category || raw.data_type || raw.type;
-
-  if (!name) {
-    throw new Error(`Column missing name fields: ${JSON.stringify(raw)}`);
-  }
-  if (!type) {
-    throw new Error(`Column missing type fields: ${JSON.stringify(raw)}`);
-  }
-
-  return {
-    name,
-    type,
-    isSupported: ALLOWED_TYPES.includes(type),
-    original: raw
-  };
-}
-
+// ------------------------------------------------------------
+// Validate API response structure
+// ------------------------------------------------------------
 export function validateColumnsResponse(data) {
-  // FIX: API returns { success, columns: [...], message }
-  // Contract expected a plain array — extract .columns first
-  // Also handles plain array for backwards compatibility
+
+  // Supports:
+  //   { columns: [...] }
+  //   { data: [...] }
+  //   [...]
   const raw = Array.isArray(data)
     ? data
     : data?.columns ?? data?.data ?? [];
@@ -34,33 +30,47 @@ export function validateColumnsResponse(data) {
   }
 
   if (raw.length === 0) {
-    console.warn('⚠️ Columns list is empty — check environment or table name');
+    console.warn(
+      '⚠️ Columns list is empty — check environment or table name'
+    );
   }
 
-  const seen       = new Set();
-  const normalized = [];
-
+  // ----------------------------------------------------------
+  // Basic structural validation only
+  // ----------------------------------------------------------
   raw.forEach((column, index) => {
+
     if (!column || typeof column !== 'object') {
-      throw new Error(`❌ Column at index ${index} is not an object: ${JSON.stringify(column)}`);
+      throw new Error(
+        `❌ Column at index ${index} is not an object`
+      );
     }
 
-    const norm = normalizeColumn(column);
+    const name =
+      column.name ||
+      column.column_name ||
+      column.field_name;
 
-    if (seen.has(norm.name)) {
-      console.warn(`⚠️ Duplicate column name found at index ${index}: ${norm.name}`);
+    if (!name) {
+      throw new Error(
+        `❌ Column at index ${index} missing name`
+      );
     }
-    seen.add(norm.name);
-
-    if (!norm.isSupported) {
-      console.warn(`⚠️ Column at index ${index} has unsupported type: ${norm.type}`);
-    }
-
-    normalized.push(norm);
   });
 
+  // ----------------------------------------------------------
+  // CENTRALIZED NORMALIZATION
+  // ----------------------------------------------------------
+  const normalized = normalizeSchema(raw);
+
+  if (normalized.length === 0) {
+    throw new Error(
+      '❌ No usable columns after schema normalization'
+    );
+  }
+
   return {
-    all:    normalized,
-    usable: normalized.filter(c => c.isSupported)
+    all: normalized,
+    usable: normalized
   };
 }

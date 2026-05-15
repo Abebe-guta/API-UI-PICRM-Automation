@@ -4,9 +4,8 @@ export class AuthAPI {
   }
 
   async login(username, password) {
-    // ✅ FIX 1: correct endpoint (based on your Postman)
     const response = await this.baseAPI.requestContext.post(
-      '/api/v1/auth/login',   // FIXED (was missing /api/v1)
+      '/api/v1/auth/login',  
       {
         data: {
           username: process.env.LOGIN_USERNAME || username,
@@ -15,7 +14,7 @@ export class AuthAPI {
       }
     );
 
-    // FIX 2: safely parse JSON (avoid HTML crash)
+    // safely parse JSON (avoid HTML crash)
     const contentType = response.headers()['content-type'];
 
     let body;

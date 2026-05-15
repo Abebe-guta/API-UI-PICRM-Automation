@@ -38,6 +38,7 @@ export class MetricSelector {
     // CONFIG (extendable)
     this.numericAggs = config.numericAggs || ['SUM', 'AVG', 'MIN', 'MAX'];
     this.categoricalAggs = config.categoricalAggs || ['COUNT'];
+    this.allowedMetrics = config.allowedMetrics || null;   // array of allowed column names (optional)
   }
 
   // -----------------------------
@@ -73,7 +74,7 @@ export class MetricSelector {
     }
 
     // build candidate pool instead of pushing all
-    const candidates = [];
+    let candidates = [];
 
     // numeric candidates
     numericColumns.forEach(col => {
@@ -96,6 +97,22 @@ export class MetricSelector {
         });
       });
     });
+    // Apply allowed metrics whitelist if provided
+    if (this.allowedMetrics && this.allowedMetrics.length) {
+      const allowedSet = new Set(this.allowedMetrics);
+      const before = candidates.length;
+      candidates = candidates.filter(c => allowedSet.has(c.column_name));
+      if (candidates.length === 0) {
+        this.logger?.warn?.({
+          type: 'NO_METRIC_CANDIDATES_AFTER_WHITELIST',
+          allowedMetrics: this.allowedMetrics,
+          originalCount: before
+        });
+        audit.seedEnd = this.seed;
+        return { metrics: [], audit };
+      }
+    }
+
     //Handle Empty candidates
        if (!candidates.length) {
       this.logger?.warn?.({ type: 'NO_METRIC_CANDIDATES' });

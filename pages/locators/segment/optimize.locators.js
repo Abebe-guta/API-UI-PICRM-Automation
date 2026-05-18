@@ -66,10 +66,10 @@ export const OptimizePageLocators = {
     container: 'div.grid.grid-cols-1.md\\:grid-cols-2.gap-4',
 
     outstandingBox:
-      'div.card:has(p:text-is("Total Outstanding Principal"))',
+      'div.card:has-text("Total Outstanding Principal")',
 
     approvedBox:
-      'div.card:has(p:text-is("Total Approved Amount"))',
+      'div.card:has-text("Total Approved Amount")',
 
     loanCountText:
       'text=loans with credit score',
@@ -89,7 +89,7 @@ export const OptimizePageLocators = {
 
     chartContainer: 'div.recharts-responsive-container',
 
-    svg: 'svg.recharts-surface',
+    svg: 'svg.recharts-surface[role="application"]',
 
     legend: {
       container: 'div.recharts-legend-wrapper',
@@ -121,8 +121,9 @@ export const OptimizePageLocators = {
     impactPercentage:
       'div.card:has(p:text-is("Impact Percentage")) p.text-2xl',
 
-    saveButton:
-      'button:has-text("Save Cutoff")',
+    saveButton: 
+     'button:has-text("Save Cutoff"), button:has-text("Update Cutoff")'
+
   },
 
   // =========================

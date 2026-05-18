@@ -174,11 +174,95 @@ test.describe('Full user journey: Segment → Pattern → Optimize', () => {
     const pafter = await patternPage.getCurrentPage();
 
     expect(pafter).not.toBe(before);
-       // TC_PATTERN_005: Go back to segment page
+   // TC_PATTERN_005: Search by Loan ID
+   const firstLoanId=await patternPage.getLoanId(0);
+   console.log('Loan-Id:',firstLoanId);
+   expect(firstLoanId).toBeTruthy();
+
+   // Apply filter
+   await patternPage.filterByLabel('Search',firstLoanId)
+   await patternPage.waitForTableLoaded();
+   //verify only one row appear
+   const rowsAfterLoanIdFilter=await patternPage.getRowCount();
+   expect(rowsAfterLoanIdFilter).toBe(1);
+   //verify match of displayed loan id
+   const displayedLoanId= await patternPage.getLoanId(0);
+   expect(displayedLoanId).toBe(firstLoanId);
+   //clean up
+   await patternPage.clearAllFilters();
+   // TC_PATTERN_006: Search by Customer ID
+   const firstCustomerId=await patternPage.getCustomerId(0);
+   //Apply filter
+   await patternPage.filterByLabel('Search',firstCustomerId);
+   await patternPage.waitForTableLoaded();
+   //verify only one row appear
+   expect(await patternPage.getRowCount()).toBe(1);
+   expect(await patternPage.getCustomerId(0)).toBe(firstCustomerId);
+   //clean up
+   await patternPage.clearAllFilters();
+    // TC_PATTERN_007: Filter by Product Code
+   const firstProduct=await patternPage.getProduct(0);
+   //Apply filter
+   await patternPage.filterByLabel('Product Code',firstProduct);
+   await patternPage.waitForTableLoaded();
+   //verify only one row appear
+   expect(await patternPage.getRowCount()).toBeGreaterThan(0);
+
+   // Verify all displayed rows have the selected product code
+   for (let i = 0; i < Math.min(rows, 5); i++) {
+    const product = await patternPage.getProduct(i);
+    expect(product).toBe(firstProduct);
+   }
+   //clean up
+   await patternPage.clearAllFilters();
+   // TC_PATTERN_008: Filter by Loan status
+   const firstStatus = await patternPage.getStatusFromRow(0);
+   await patternPage.filterByLabel('Loan Status', firstStatus);
+   await patternPage.waitForTableLoaded();
+
+   expect(await patternPage.getRowCount()).toBeGreaterThan(0);
+   const displayedStatus = await patternPage.getStatusFromRow(0);
+   expect(displayedStatus).toBe(firstStatus);
+   await patternPage.clearAllFilters();
+    // TC_PATTERN_009: Filter by Region
+   // Assuming region column exists and is filterable
+   const firstRegion = await patternPage.getRegionFromRow(0);
+   await patternPage.filterByLabel('Region', firstRegion);
+   await patternPage.waitForTableLoaded();
+
+   expect(await patternPage.getRowCount()).toBeGreaterThan(0);
+   const displayedRegion = await patternPage.getRegionFromRow(0);
+   expect(displayedRegion).toBe(firstRegion);
+   await patternPage.clearAllFilters();
+   // TC_PATTERN_010:Change rows per page
+   const rowSizes = [5, 10, 25];
+   for (const size of rowSizes) {
+    await patternPage.selectRowsPerPage(size);
+    const rowCount = await patternPage.getRowCount();
+    expect(rowCount).toBeLessThanOrEqual(size);
+   }
+   //TC_PATTERN_011: View action opens loan details
+   const firstLoanIdView = await patternPage.getLoanId(0);
+   await patternPage.clickViewByLoanId(firstLoanIdView);
+   
+   await patternPage.page.goBack();
+   //TC_PATTERN_012: Pattern details show segment ID, pattern ID, loan count
+   const patternsegmentId = await patternPage.getSegmentId();
+   console.log('segmentId:',patternsegmentId);
+   const findpatternId = await patternPage.getPatternId();
+   console.log('patternId:',findpatternId);
+   const patternloanCount = await patternPage.getLoanCount();
+   console.log('loanCount:',patternloanCount);
+
+   expect(patternsegmentId).toBeTruthy();
+   expect(findpatternId).toBeTruthy();
+   expect(patternloanCount).toBeGreaterThan(0);
+   
+   // TC_PATTERN_013: Go back to segment page
     await sharedPage.goBack();
     await segmentPage.waitForTableLoaded();
 
-    // TC_PATTERN_006: Get first cell text *fresh* for Manage action (table may have changed)
+    // TC_PATTERN_014: Get first cell text *fresh* for Manage action (table may have changed)
     const firstCellTextManage = await segmentPage.getFirstRowFirstCell();
     expect(firstCellTextManage).toBeTruthy();
 
@@ -195,27 +279,81 @@ test.describe('Full user journey: Segment → Pattern → Optimize', () => {
    // TC_OPTIMIZE_001: page title
     expect(await optimizePage.getTitle())
       .toBe('Portfolio Optimization');
-   // TC_OPTIMIZE_002: summary cards exist
-    const count = await optimizePage.getSummaryCardsCount();
-    expect(count).toBeGreaterThan(0);
 
-    // TC_OPTIMIZE_003: credit score slider works
+   //TC_OPTIMIZE_002:Header displays segment name and pattern ID
+    const segmentId = await optimizePage.getSegmentIdFromUrl();
+    const patternId = await optimizePage.getPatternIdFromUrl();
+    expect(segmentId).toBeTruthy();
+    expect(patternId).toBeTruthy();
+
+   // TC_OPTIMIZE_003: summary cards exist
+    const summaryCount = await optimizePage.getSummaryCardsCount();
+    expect(summaryCount ).toBeGreaterThan(0);
+
+    // TC_OPTIMIZE_004: credit score slider works
     await optimizePage.setCreditScore(650);
 
-    const value = await optimizePage.getSelectedCreditScore();
+    const selectedScore  = await optimizePage.getSelectedCreditScore();
 
-    expect(value).toContain('650');
+    expect(selectedScore ).toContain('650');
    
-    // TC_OPTIMIZE_004: chart visible
+    // TC_OPTIMIZE_005: chart visible
     expect(await optimizePage.isChartVisible()).toBeTruthy();
 
-    // TC_OPTIMIZE_005: optimisation runs without error
+   //TC_OPTIMIZE_006: Outstanding Principal updates after credit score change
+    const beforePrincipal =
+   await optimizePage.getOutstandingPrincipalValue();
+
+    await optimizePage.setCreditScore(650);
+   await optimizePage.clickSaveCutoff();
+   await optimizePage.waitForMetricsToStabilize();
+
+   const afterPrincipal =
+   await optimizePage.getOutstandingPrincipalValue();
+
+   expect(afterPrincipal).not.toBe(beforePrincipal);
+
+    //TC_OPTIMIZE_007:Loan count updates after credit score change
+
+   const beforeLoan =await optimizePage.getApprovedLoanCount();
+   console.log("approved loans before credit score changed",beforeLoan);
+
+   await optimizePage.setCreditScore(651);
+   await optimizePage.waitForSaveCutoffEnabled();
+   await optimizePage.clickSaveCutoff();
+   await optimizePage.waitForMetricsToStabilize();
+
+   const afterLoan =await optimizePage.getApprovedLoanCount();
+   console.log("approved loans before credit score changed",afterLoan);
+   expect(afterLoan).not.toBe(beforeLoan);
+
+    // TC_OPTIMIZE_008: optimisation runs without error
     await optimizePage.optimizePortfolio(700);
 
     await expect(
-      optimizePage.page.locator('body')
-    ).not.toContainText('500');
-  
-console.log('✅ Full user journey completed successfully.');
+      optimizePage.page.locator('body')).not.toContainText('500');
+   // TC_OPTIMIZE_009:Impact percentage is display
+     const impact = await optimizePage.getImpactPercentage();
+     expect(impact).toMatch(/^\d+(\.\d+)?%$/);
+   //TC_OPTIMIZE_010:Current cutoff value is shown
+    const currentCutoff = await optimizePage.getCurrentCutoff();
+   expect(currentCutoff).toBeTruthy();
+   const cutoffNumber = Number(currentCutoff.replace(/[^0-9.]/g, ''));
+   expect(cutoffNumber).toBeGreaterThan(0);
+   //TC_OPTIMIZE_011:Save Cutoff button enables after slider change
+   // Initial state (maybe disabled if no change)
+   const initiallyEnabled = await optimizePage.isSaveCutoffButtonVisible() && 
+    !(await optimizePage.page.locator(optimizePage.locators.cutoff.saveButton).getAttribute('disabled'));
+   // Make a change
+   await optimizePage.setCreditScore(652);
+   await optimizePage.waitForSaveCutoffEnabled();
+   const afterEnabled = await optimizePage.isSaveCutoffButtonVisible() && 
+    !(await optimizePage.page.locator(optimizePage.locators.cutoff.saveButton).getAttribute('disabled'));
+   expect(afterEnabled).toBe(true);
+   //TC_OPTIMIZE_012:Back button returns to segment management
+   await optimizePage.clickBack();
+   await expect(optimizePage.page).toHaveURL(/\/segment-management/);
+
+   console.log('✅ Full user journey completed successfully.');
 });
 });

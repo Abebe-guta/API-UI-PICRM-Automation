@@ -4,6 +4,7 @@
 
 import { BasePage } from '../base/BasePage.js';
 import { OptimizePageLocators } from '../locators/segment/optimize.locators.js';
+import { expect } from 'playwright/test';
 
 class OptimizePage extends BasePage {
 
@@ -150,158 +151,233 @@ class OptimizePage extends BasePage {
     });
 
     await slider.fill(String(value));
+    // Ensure the change event is triggered (fill already does both input and change)
+   await this.page.waitForTimeout(500); // allow debounce
+
 
     await this.waitForNetworkIdle();
-  }
+   }
 
-  async getSelectedCreditScore() {
+   async getSelectedCreditScore() {
 
     return await this.getText(
       this.locators.creditFilter.selectedValue
     );
-  }
+   }
 
-  async getMinimumCreditScore() {
+   async getMinimumCreditScore() {
 
     return await this.getText(
       this.locators.creditFilter.minValue
     );
-  }
+   }
 
-  async getMaximumCreditScore() {
+   async getMaximumCreditScore() {
 
     return await this.getText(
       this.locators.creditFilter.maxValue
     );
-  }
+   }
 
-  // =====================================================
-  // FILTERED METRICS (STABILIZED)
-  // =====================================================
-
-  async getOutstandingPrincipalValue() {
-
-    const box = this.page.locator(
-      this.locators.filteredMetrics.outstandingBox
+   // =====================================================
+   // FILTERED METRICS (STABILIZED)
+   // =====================================================
+   async getMetricValue(cardLocator){
+    const container=this.page.locator(this.locators.filteredMetrics.container);
+    const card=container.locator(cardLocator);
+    const count=await card.count();
+      if (count === 0) {
+    throw new Error(
+      `Metric card not found: ${cardLocator}`
     );
-
-    await box.waitFor({
-      state: 'visible',
-      timeout: 30000
-    });
-
-    return (
-      await box
-        .locator('p.text-lg, p.text-xl, p.text-2xl')
-        .first()
-        .innerText()
-    ).trim();
-  }
-
-  async getApprovedAmountValue() {
-
-    const box = this.page.locator(
-      this.locators.filteredMetrics.approvedBox
+   }
+    if (count > 1) {
+    throw new Error(
+      `Multiple metric cards found: ${cardLocator}`
     );
+   }
+    await card.first().waitFor({
+    state: 'visible',
+    timeout: 30000
+   });
+   // Amount is the bold value
+   const value = card.first().locator('p.font-bold');
 
-    await box.waitFor({
-      state: 'visible',
-      timeout: 30000
-    });
+   const valueCount = await value.count();
 
-    return (
-      await box
-        .locator('p.text-lg, p.text-xl, p.text-2xl')
-        .first()
-        .innerText()
-    ).trim();
-  }
+   if (valueCount === 0) {
+    throw new Error(`Metric value missing for: ${cardLocator}`  
+    );
+    }
 
-  // =====================================================
-  // IMPACT ANALYSIS
-  // =====================================================
+   return (await value.first().innerText()).trim();
+   }
 
-  async getImpactPercentage() {
+   async getOutstandingPrincipalValue() {
+
+    return await this.getMetricValue(
+    this.locators.filteredMetrics.outstandingBox
+   );
+   }
+
+   async getApprovedAmountValue() {
+
+   return await this.getMetricValue(
+    this.locators.filteredMetrics.approvedBox
+   );
+   }
+    async getApprovedLoanCount() {
+   const container = this.page.locator(
+    this.locators.filteredMetrics.container
+   );
+
+   const loanText = container.locator(
+    this.locators.filteredMetrics.loanCountText
+   );
+
+   await loanText.first().waitFor({
+    state: 'visible',
+    timeout: 30000
+   });
+
+   const text = (
+    await loanText.first().innerText()
+   ).trim();
+
+   if (!text.includes('loans with credit score')) {
+    throw new Error(
+      `Unexpected loan count text: ${text}`
+    );
+   }
+
+   // Extract number
+   const match = text.match(/[\d,]+/);
+
+   if (!match) {
+    throw new Error(
+      `Could not extract loan count from: ${text}`
+    );
+   }
+
+   // Return as number
+   return Number(match[0].replace(/,/g, ''));
+   }
+
+
+   // =====================================================
+   // IMPACT ANALYSIS
+   // =====================================================
+
+   async getImpactPercentage() {
 
     return await this.getText(
       this.locators.impact.percentageValue
     );
-  }
+   }
 
-  async isChartVisible() {
+   async isChartVisible() {
 
     return await this.isVisible(
       this.locators.impact.svg
     );
-  }
+   }
 
-  async isImpactSectionVisible() {
+   async isImpactSectionVisible() {
 
     return await this.isVisible(
       this.locators.impact.section
     );
-  }
+   }
 
-  async isExcludedLegendVisible() {
+   async isExcludedLegendVisible() {
 
     return await this.isVisible(
       this.locators.impact.legend.excluded
     );
-  }
+   }
 
-  async isWithCutoffLegendVisible() {
+   async isWithCutoffLegendVisible() {
 
     return await this.isVisible(
       this.locators.impact.legend.withCutoff
     );
-  }
+   }
 
-  // =====================================================
-  // CUT-OFF PANEL
-  // =====================================================
+   // =====================================================
+   // CUT-OFF PANEL
+   // =====================================================
 
-  async getCurrentCutoff() {
+   async getCurrentCutoff() {
 
     return await this.getText(
       this.locators.cutoff.currentValue
     );
-  }
+   }
 
-  async getCutoffImpactPercentage() {
+   async getCutoffImpactPercentage() {
 
     return await this.getText(
       this.locators.cutoff.impactPercentage
     );
-  }
+   }
 
-  async clickSaveCutoff() {
+   async clickSaveCutoff() {
+   const saveButtonSelector = this.locators.cutoff.saveButton;
+   const saveButton = this.page.locator(saveButtonSelector);
 
-    await this.click(
-      this.locators.cutoff.saveButton
-    );
+   await expect(saveButton).toBeVisible();
+   await expect(saveButton).toBeEnabled();
 
-    await this.waitForNetworkIdle();
-  }
+   await saveButton.click();
 
-  async isSaveCutoffButtonVisible() {
+   await expect(
+    this.page.getByText('Cutoff updated successfully!')
+   ).toBeVisible({ timeout: 10000 });
+   }
+
+   async isSaveCutoffButtonVisible() {
 
     return await this.isVisible(
       this.locators.cutoff.saveButton
     );
-  }
+   }
+   async waitForMetricsToStabilize() {
 
-  // =====================================================
-  // BUSINESS FLOW
-  // =====================================================
+   const container = this.page.locator(
+    this.locators.filteredMetrics.container
+   ).first();
 
-  async optimizePortfolio(score) {
+   await expect(container).toBeVisible();
+
+   // wait for DOM stability (no layout shift)
+   await expect(container).toHaveCount(1);
+
+   // ensure rendering is complete
+   await this.page.waitForLoadState('networkidle');
+
+   // final micro-buffer for JS rendering
+   await this.page.waitForTimeout(200);
+   }
+   //===========
+   //HELPER
+   //===========
+   async waitForSaveCutoffEnabled(timeout = 5000) {
+   const saveButton = this.page.locator(this.locators.cutoff.saveButton);
+   await expect(saveButton).toBeEnabled({ timeout });
+   }
+
+   // =====================================================
+   // BUSINESS FLOW
+   // =====================================================
+
+   async optimizePortfolio(score) {
 
     await this.setCreditScore(score);
 
     await this.clickSaveCutoff();
 
     await this.waitForNetworkIdle();
-  }
-}
+   }
+ }
 
 export{ OptimizePage };

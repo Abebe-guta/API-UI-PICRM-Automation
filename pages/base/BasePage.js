@@ -188,23 +188,26 @@ export class BasePage {
   // VISIBILITY / STATE
   // =====================================================
 
-  async isVisible(selector) {
+ async isVisible(selector) {
+  const locator = typeof selector === 'string' 
+    ? this.page.locator(selector) 
+    : selector;
+  return await locator.isVisible();
+ }
 
-    return await this.locator(selector)
-      .isVisible();
-  }
+ async isHidden(selector) {
+  const locator = typeof selector === 'string'
+    ? this.page.locator(selector)
+    : selector;
+  return await locator.isHidden();
+ }
 
-  async isHidden(selector) {
-
-    return await this.locator(selector)
-      .isHidden();
-  }
-
-  async isEnabled(selector) {
-
-    return await this.locator(selector)
-      .isEnabled();
-  }
+ async isEnabled(selector) {
+  const locator = typeof selector === 'string'
+    ? this.page.locator(selector)
+    : selector;
+  return await locator.isEnabled();
+}
 
   // =====================================================
   // DROPDOWNS
@@ -222,7 +225,7 @@ export class BasePage {
       timeout: 30000
     });
 
-    await dropdown.selectOption(value);
+    await dropdown.selectOption(String(value));
 
     await this.waitForNetworkIdle();
   }

@@ -16,6 +16,7 @@ class PatternPage extends BasePage {
     // route validation helper
     this.patternRouteRegex =
       /\/picr\/segment-management\/\d+\/pattern\/\d+$/;
+
   }
 
   // =====================================================
@@ -110,12 +111,19 @@ class PatternPage extends BasePage {
       this.locators.details.patternIdValue
     );
   }
-
-  async getFieldValue(label) {
+   async getLoanCount() {
+    
+    const text= await this.getText(this.locators.details.loanCount);
+      // Remove commas and convert to number
+   const numericValue = text.replace(/,/g, '');
+   return parseInt(numericValue, 10);
+   }
+   
+   async getFieldValue(label) {
     return await this.getText(
       this.locators.details.fieldValue(label)
     );
-  }
+   }
 
   // =====================================================
   // ATTRIBUTES
@@ -143,24 +151,21 @@ class PatternPage extends BasePage {
   // FILTERS
   // =====================================================
 
-  async filterByLabel(label, value) {
+   async filterByLabel(label, value) {
+   await this.page.getByLabel(label, { exact: true }).fill(value);
+   await this.page.keyboard.press('Enter');
+   await this.waitForTableLoaded();   // replace waitForNetworkIdle()
+   }
 
-    await this.fill(
-      this.locators.filters.inputByLabel(label),
-      value
-    );
-
-    await this.waitForNetworkIdle();
-  }
-
-  async clearSearch() {
-
-    await this.clear(
-      this.locators.filters.search
-    );
-
-    await this.waitForNetworkIdle();
-  }
+   async clearAllFilters() {
+   const labels = ['Search', 'Product Code', 'Loan Status', 'Region'];
+    for (const label of labels) {
+    const input = this.page.getByLabel(label, { exact: true });
+    await input.clear();
+    await input.press('Enter');
+   }
+   await this.waitForTableLoaded();
+   }
 
   // =====================================================
   // TABLE
@@ -185,21 +190,21 @@ class PatternPage extends BasePage {
     ]);
 
     await this.waitForTableLoaded();
-  }
+   }
 
-  async clickViewByLoanId(loanId) {
+   async clickViewByLoanId(loanId) {
+    // Find the row containing the loan ID (any column)
+    const row = this.page.locator('tr').filter({ hasText: loanId });
+    await row.waitFor({ state: 'visible', timeout: 10000 });
+    // Find the "View" button inside that row by its role
+    const viewButton = row.getByRole('button', { name: 'View' });
+    await viewButton.click();
+    // Wait for navigation to loan details page
+    const expectedUrlPattern = new RegExp(`/picr/loan-data-management/loans/loan_table_coop/${loanId}`);
+    await this.page.waitForURL(expectedUrlPattern, { timeout: 10000 });
+   }
 
-    await Promise.all([
-      this.page.waitForURL(this.patternRouteRegex),
-      this.click(
-        this.locators.rowActions.viewByLoanId(loanId)
-      ),
-    ]);
-
-    await this.waitForTableLoaded();
-  }
-
-  async getCellTextByRow(rowIndex, columnSelector) {
+   async getCellTextByRow(rowIndex, columnSelector) {
 
     const row = this.page
       .locator(this.locators.table.rows)
@@ -246,6 +251,14 @@ class PatternPage extends BasePage {
       this.locators.table.columns.status
     );
   }
+   async getRegionFromRow(rowIndex = 0) {
+
+    return await this.getCellTextByRow(
+      rowIndex,
+      this.locators.table.columns.region
+    );
+  }
+
 
   // =====================================================
   // PAGINATION
@@ -324,7 +337,7 @@ class PatternPage extends BasePage {
 
     await this.selectDropdown(
       this.locators.pagination.rowSizeDropdown,
-      value
+      String(value)
     );
 
     await this.waitForTableLoaded();

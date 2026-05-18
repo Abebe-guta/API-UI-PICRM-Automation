@@ -45,18 +45,15 @@ export const PatternLocators = {
       'div.card:has(h2:text-is("Pattern Details"))',
 
     // generic field resolver
-    fieldValue: (label) =>
-      `div:has(> div:text-is("${label}")) + div`,
 
-    // stable predefined fields
-    segmentNameValue:
-      'div:has(> div:text-is("Segment Name")) + div',
+   fieldValue: (label) => 
+    `div:has(> div:text-is("${label}")) > div:last-child`,
 
-    segmentIdValue:
-      'div:has(> div:text-is("Segment ID")) + div',
-
-    patternIdValue:
-      'div:has(> div:text-is("Pattern ID")) + div',
+    // Convenience properties (using the generic helper)
+   segmentNameValue: 'div:has(> div:text-is("Segment Name")) > div:last-child',
+   segmentIdValue:   'div:has(> div:text-is("Segment ID")) > div:last-child',
+   patternIdValue:   'div:has(> div:text-is("Pattern ID")) > div:last-child',
+   loanCount:        'div:has(> div:text-is("Loan Count")) > div:last-child',
   },
 
   // =========================================================

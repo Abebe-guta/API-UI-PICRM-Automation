@@ -9,9 +9,9 @@ import { AttributeSelector }           from '../strategies/attribute.selector.js
 import { BinStrategy }                 from '../strategies/bin.strategy.js';
 import { MetricSelector }              from '../strategies/metric.selector.js';
 import { SegmentModel }                from '../Domain/segment/segment.model.js';
-import { TableResolver }               from '../api/resolver/table.resolver.js';
-import { ColumnsAPI }                  from '../api/columns.api.js';
-import { BaseAPI }                     from '../api/base.api.js';
+import { TableResolver }               from '../API/resolver/table.resolver.js';
+import { ColumnsAPI }                  from '../API/columns.api.js';
+import { BaseAPI }                     from '../API/base.api.js';
 import { hashObject, formatTimestamp } from '../utils/helpers.js';
 import { readFileSync }                from 'fs';
 import path                            from 'path';

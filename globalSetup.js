@@ -56,7 +56,7 @@ export default async function globalSetup() {
 
   // STEP 2: OPTIONAL UI VERIFICATION (no storageState saved)
   console.log(`\n🌐 [globalSetup] UI login verification`);
-  const browser = await chromium.launch({ headless: process.env.HEADLESS !== 'false' });
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   const context = await browser.newContext();
   const page = await context.newPage();
 

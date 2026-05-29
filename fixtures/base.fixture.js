@@ -13,8 +13,8 @@ This file creates a custom test environment that automatically provides:
 import { test as base, expect } from '@playwright/test';
 
 import { SegmentBuilderService } from '../services/segmentBuilder.service.js';
-import { SegmentAPI }            from '../api/segment.api.js';
-import { BaseAPI }               from '../api/base.api.js';
+import { SegmentAPI }            from '../API/segment.api.js';
+import { BaseAPI }               from '../API/base.api.js';
 
 import {schemaAnnotation} from '../utils/testData.js';
 

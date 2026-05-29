@@ -7,7 +7,7 @@
 // =============================================================
 
 import { chromium } from '@playwright/test';
-import { AuthAPI }  from './api/Auth.api.js';
+import { AuthAPI }  from './api/auth.api.js';
 import { BaseAPI }  from './api/base.api.js';
 
 import fs     from 'fs';

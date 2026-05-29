@@ -2,18 +2,21 @@
 // fixtures/base.fixture.js
 // =============================================================
 
+/*Big Picture (What this file does)
+This file creates a custom test environment that automatically provides:
+🔐 Authentication token handling
+📡 API clients (BaseAPI, SegmentAPI)
+🏗️ Test data builder service
+🌐 A shared logged-in browser page (per worker)
+*/
+
 import { test as base, expect } from '@playwright/test';
 
 import { SegmentBuilderService } from '../services/segmentBuilder.service.js';
 import { SegmentAPI }            from '../api/segment.api.js';
 import { BaseAPI }               from '../api/base.api.js';
 
-import {
-  seedAnnotation,
-  schemaAnnotation,
-} from '../utils/testData.js';
-
-import { formatRunLabel } from '../utils/helpers.js';
+import {schemaAnnotation} from '../utils/testData.js';
 
 import fs   from 'fs';
 import path from 'path';
@@ -37,25 +40,6 @@ function readSavedToken() {
 }
 
 // =============================================================
-// RNG
-// =============================================================
-
-function createSeededRng(seed) {
-  let s = seed % 2147483647;
-  if (s <= 0) s += 2147483646;
-  return function rand() {
-    s = (s * 16807) % 2147483647;
-    return (s - 1) / 2147483646;
-  };
-}
-
-function resolveSeed(overrideSeed) {
-  if (process.env.SEED) return Number(process.env.SEED);
-  if (overrideSeed !== undefined) return overrideSeed;
-  return Math.floor(Math.random() * 2147483646) + 1;
-}
-
-// =============================================================
 // SHARED WORKER‑SCOPED PAGE (token injected once)
 // =============================================================
 
@@ -67,20 +51,6 @@ let sharedContext = null;
 // =============================================================
 
 export const test = base.extend({
-
-  seed: [async ({}, use, testInfo) => {
-    const seed = resolveSeed(testInfo.project?.use?.seed);
-    testInfo.annotations.push(seedAnnotation(seed));
-    await use(seed);
-  }, { scope: 'test' }],
-
-  rand: [async ({ seed }, use) => {
-    await use(createSeededRng(seed));
-  }, { scope: 'test' }],
-
-  runLabel: [async ({ seed }, use) => {
-    await use(formatRunLabel(seed));
-  }, { scope: 'test' }],
 
   baseAPI: [async ({}, use) => {
     const token = readSavedToken();
@@ -96,10 +66,9 @@ export const test = base.extend({
     await use(new SegmentAPI(baseAPI));
   }, { scope: 'worker' }],
 
-  builder: [async ({ seed }, use, testInfo) => {
+  builder: [async ({ }, use, testInfo) => {
     const token = readSavedToken();
     const service = new SegmentBuilderService({
-      seed,
       logger: console,
       config: testInfo.project?.use?.builderConfig ?? {},
       token,
@@ -110,7 +79,7 @@ export const test = base.extend({
     await service.dispose();
   }, { scope: 'test' }],
 
-  // ✅ New worker‑scoped shared page – avoids conflict with built‑in 'page'
+  // New worker‑scoped shared page – avoids conflict with built‑in 'page'
   sharedPage: [async ({ browser }, use) => {
     if (!sharedPage) {
       console.log('\n🔐 [Worker] Initialising shared page – token injection once');
@@ -118,7 +87,7 @@ export const test = base.extend({
       const baseURL = (process.env.BASE_URL ?? 'http://3.216.34.218:9192/picr').replace(/\/$/, '');
       sharedContext = await browser.newContext();
       sharedPage = await sharedContext.newPage();
-
+      //inject token before page loads app
       await sharedPage.addInitScript((jwt) => {
         sessionStorage.setItem('auth_token', jwt);
         sessionStorage.setItem('token', jwt);

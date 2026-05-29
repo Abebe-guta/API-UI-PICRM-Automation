@@ -10,32 +10,32 @@
 // RANDOM UTILITIES (DETERMINISTIC READY)
 // -------------------------------------------------------------
 
-export function pickRandom(arr, rand = Math.random) {
+export function pickRandom(arr) {
   if (!arr || arr.length === 0) return undefined;
-  return arr[Math.floor(rand() * arr.length)];
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function pickRandomN(arr, n, rand = Math.random) {
+export function pickRandomN(arr, n) {
   if (!arr || arr.length === 0) return [];
 
-  const shuffled = shuffle(arr, rand);
+  const shuffled = shuffle(arr);
   return shuffled.slice(0, Math.min(n, arr.length));
 }
 
-export function randomInt(min, max, rand = Math.random) {
-  return Math.floor(rand() * (max - min + 1)) + min;
+export function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export function randomFloat(min, max, decimals = 2, rand = Math.random) {
-  const val = rand() * (max - min) + min;
+export function randomFloat(min, max, decimals = 2) {
+  const val = Math.random() * (max - min) + min;
   return parseFloat(val.toFixed(decimals));
 }
 
-export function shuffle(arr, rand = Math.random) {
+export function shuffle(arr) {
   const result = [...arr];
 
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
+    const j = Math.floor(Math.random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
 
@@ -78,17 +78,12 @@ export async function retry(fn, maxAttempts = 3, delayMs = 500, factor = 2) {
 // ID / LABEL FORMATTERS (SEED-SAFE)
 // -------------------------------------------------------------
 
-export function generateId(prefix = 'id', rand = Math.random) {
-  return `${prefix}_${rand().toString(36).slice(2, 8)}`;
+export function generateId(prefix = 'id') {
+  return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function formatTimestamp(date = new Date()) {
   return date.toISOString();
-}
-
-export function formatRunLabel(seed, date = new Date()) {
-  const ts = date.toISOString().replace(/[-:.TZ]/g, '').slice(0, 15);
-  return `run_${ts}_seed${seed}`;
 }
 
 export function truncate(str, maxLen = 50) {

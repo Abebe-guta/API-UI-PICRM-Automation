@@ -1,60 +1,45 @@
 // =============================================================
 // services/segmentBuilder.service.js
-// PURPOSE: Orchestration engine — deterministic pipeline
-//
-// FIXES:
-//   ✅ columnsAPI.getColumns() returns { all, usable }
-//      → service now passes .usable to normalizeSchema()
-//   ✅ async build()
-//   ✅ this.baseAPI properly initialized
-//   ✅ normalizeSchema() called as function not class
-//   ✅ init() pre-fetches table + schema, exposes schemaHash
-//   ✅ _meta block on every payload for replay
-//   ✅ dispose() cleans up HTTP client
+// PURPOSE: Orchestration engine
 // =============================================================
 
-import { normalizeSchema }          from '../Domain/schema/schema.normalizer.js';
-import { SchemaResolver }           from '../Domain/schema/schema.resolver.js';
-import { AttributeSelector }        from '../strategies/attribute.selector.js';
-import { BinStrategy }              from '../strategies/bin.strategy.js';
-import { MetricSelector }           from '../strategies/metric.selector.js';
-import { SegmentModel }             from '../Domain/segment/segment.model.js';
-import { TableResolver }            from '../api/resolver/table.resolver.js';
-import { ColumnsAPI }               from '../api/columns.api.js';
-import { BaseAPI }                  from '../api/base.api.js';
+import { normalizeSchema }             from '../Domain/schema/schema.normalizer.js';
+import { SchemaResolver }              from '../Domain/schema/schema.resolver.js';
+import { AttributeSelector }           from '../strategies/attribute.selector.js';
+import { BinStrategy }                 from '../strategies/bin.strategy.js';
+import { MetricSelector }              from '../strategies/metric.selector.js';
+import { SegmentModel }                from '../Domain/segment/segment.model.js';
+import { TableResolver }               from '../api/resolver/table.resolver.js';
+import { ColumnsAPI }                  from '../api/columns.api.js';
+import { BaseAPI }                     from '../api/base.api.js';
 import { hashObject, formatTimestamp } from '../utils/helpers.js';
-import { readFileSync } from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync }                from 'fs';
+import path                            from 'path';
+import { fileURLToPath }               from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname  = path.dirname(fileURLToPath(import.meta.url));
 const WHITELIST_PATH = path.resolve(__dirname, '../utils/metrics-config.json');
 
 export class SegmentBuilderService {
 
   constructor({
-    seed   = null,
+    // CHANGE: removed `seed = null` and `initialSeed` — service no longer
+    // manages or propagates seed state; every run is intentionally random
     logger = console,
     config = {},
-    token  = null,   // ← pre-saved token from globalSetup via fixture
-                     //   injected AFTER init() boots the requestContext
+    token  = null,
   } = {}) {
-    this.seed        = seed;
-    this.initialSeed = seed;
-    this.logger      = logger;
-    this.config      = config;
-    this._token      = token;  // stored, applied in init() after baseAPI.init()
+    this.logger = logger;
+    this.config = config;
+    this._token = token;
 
-    // BaseAPI manages its own requestContext (see base.api.js)
     this.baseAPI    = new BaseAPI({ logger });
     this.columnsAPI = new ColumnsAPI(this.baseAPI);
 
-    // Populated by init()
     this.table             = null;
-    this.columns           = [];      // normalized usable columns only
-    this.schemaHash        = null;    // exposed for fixture annotation
+    this.columns           = [];
+    this.schemaHash        = null;
     this.distinctValuesMap = {};
     this.selectedValuesMap = null;
 
@@ -63,17 +48,12 @@ export class SegmentBuilderService {
 
   // ============================================================
   // INIT
-  // Pre-fetches table + schema so build() is purely deterministic.
+  // Pre-fetches table + schema so build() has everything it needs.
   // Called once per test in base.fixture.js before test body runs.
   // ============================================================
   async init() {
     await this.baseAPI.init();
 
-    // Inject the pre-saved token immediately after requestContext is ready.
-    // WHY here and not in the constructor?
-    //   requestContext doesn't exist until init() runs — setToken() just
-    //   sets this.token on BaseAPI, which getHeaders() reads on every call.
-    //   Calling it here guarantees every subsequent request is authenticated.
     if (this._token) {
       this.baseAPI.setToken(this._token);
     }
@@ -81,74 +61,65 @@ export class SegmentBuilderService {
     // STEP 0: TABLE SELECTION
     const rawTableResponse = await this.columnsAPI.getLoanDataTables();
 
-    // API returns: { success: true, tables: ['loan_table_coop'], message: '...' }
-    // TableResolver expects objects: [{ name: 'loan_table_coop' }]
-    // Extract .tables array and map strings → { name } objects
     const rawList = rawTableResponse?.tables ?? rawTableResponse;
     const tables  = Array.isArray(rawList)
       ? rawList.map(t => (typeof t === 'string' ? { name: t } : t))
       : [];
 
-    const tableResolver = new TableResolver({ logger: this.logger });
-    const selectedTable = tableResolver.selectTable(tables, { seed: this.seed });
+    const tableResolver  = new TableResolver({ logger: this.logger });
+
+    // CHANGE: removed `seed: this.seed` from selectTable() call —
+    // table selection is now random on every run like everything else
+    const selectedTable  = tableResolver.selectTable(tables);
 
     this.table = selectedTable.name;
 
     // STEP 1: FETCH COLUMNS
-    // getColumns() returns { all, usable } via validateColumnsResponse()
-    // We only pass .usable to normalizeSchema() — filtered + supported types only
     const columnsResult = await this.columnsAPI.getColumns(this.table);
 
-    // FIX: columnsResult is { all, usable } — not a plain array
-    // normalizeSchema() expects an array → pass .usable
     const usableColumns = columnsResult?.usable ?? columnsResult;
 
     if (!Array.isArray(usableColumns) || usableColumns.length === 0) {
       throw new Error(`❌ No usable columns returned for table: ${this.table}`);
     }
 
-    // normalizeSchema expects { name, type } shaped items
-    // columnsResult.usable items have: { name, type, isSupported, original }
-    // → normalizeSchema handles this via its multiple field fallbacks
     this.columns = normalizeSchema(usableColumns);
 
     if (this.columns.length === 0) {
       throw new Error(`❌ No columns survived normalization for table: ${this.table}`);
     }
 
-    // Schema fingerprint — exposed so fixture can annotate test report
-    this.schemaHash = hashObject(this.columns);
-
+    this.schemaHash   = hashObject(this.columns);
     this._initialized = true;
 
     this.logger?.info?.({
       type:       'SERVICE_INITIALIZED',
       table:      this.table,
       columns:    this.columns.length,
-      schemaHash: this.schemaHash,
-      seed:       this.seed
+      schemaHash: this.schemaHash
+      // CHANGE: removed `seed` from log — no seed to report
     });
   }
 
   // ============================================================
-  // BUILD 
+  // BUILD
   // ============================================================
   async build() {
     if (!this._initialized) {
       throw new Error('❌ Call init() before build()');
     }
 
-    const seedStart = this.seed;
-
     const audit = {
       runId: (typeof crypto !== 'undefined' && crypto.randomUUID)
         ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random()}`,
+        : `run-${Date.now()}`,
 
-      timestamp:         Date.now(),
+      timestamp:         new Date().toISOString(),
       builtAt:           formatTimestamp(),
-      seedStart,
-      seedEnd:           null,
+
+      // CHANGE: removed seedStart, seedEnd — no seed system
+      // CHANGE: removed reproducible, replayCommand — only meaningful with seeds
+
       schemaFingerprint: this.schemaHash,
       table:             this.table,
 
@@ -156,33 +127,27 @@ export class SegmentBuilderService {
         tableSelection: {
           selected:     this.table,
           totalColumns: this.columns.length,
-          mode:         this.seed !== null ? 'deterministic' : 'random'
+          // CHANGE: mode is always 'random' now — removed ternary on seed
+          mode: 'random'
         }
       }
     };
 
     try {
       // STEP 2: SCHEMA RESOLUTION
-      // Pass already-normalized columns directly.
-      // SchemaResolver calls normalizeSchema() internally — passing
-      // pre-normalized columns avoids double-normalization which was
-      // mutating the seed state and causing SEED_DRIFT warnings.
-      // We bypass by passing { name, type } shaped items which
-      // normalizeSchema() passes through unchanged (already valid).
       const resolver = new SchemaResolver(this.columns);
       const schema   = resolver.getUsableColumns();
       const stats    = resolver.getStats();
-
       audit.steps.schema = stats;
 
       // STEP 3: ATTRIBUTE SELECTION
+      // CHANGE: removed `seed: this.seed` — AttributeSelector no longer accepts it
       const attrSelector = new AttributeSelector(
         {
           numeric:     resolver.getNumeric(),
           categorical: resolver.getCategorical()
         },
         {
-          seed:   this.seed,
           mode:   this.config.selectionMode || 'balanced',
           config: this.config,
           logger: this.logger
@@ -198,7 +163,9 @@ export class SegmentBuilderService {
         categoricalCount: this.config.categoricalCount || 1
       });
 
-      this.seed = attrSelector.seed;
+      // CHANGE: removed `this.seed = attrSelector.seed` —
+      // strategies no longer expose .seed; harvesting it was setting
+      // this.seed = undefined and silently corrupting service state
       audit.steps.AttributeSelector = attrAudit;
 
       if (!selectedNumeric.length && !selectedCategorical.length) {
@@ -206,9 +173,6 @@ export class SegmentBuilderService {
       }
 
       // STEP 4a: FETCH DISTINCT VALUES for selected categorical columns
-      // The distinctValuesMap must be populated BEFORE binning —
-      // bin.strategy uses it to build selected_values for each categorical attr.
-      // Without this, all categoricals get skipped (NO_DISTINCT_VALUES warning).
       const fetchedDistinctValues = { ...this.distinctValuesMap };
 
       for (const col of selectedCategorical) {
@@ -219,8 +183,6 @@ export class SegmentBuilderService {
               column_name: col.name,
               limit:       100,
             });
-            // getDistinctValues returns { values: [...], total }
-            // values are already cleaned (nulls removed, deduped)
             fetchedDistinctValues[col.name] = result?.values ?? [];
           } catch (err) {
             this.logger?.warn?.({
@@ -233,11 +195,11 @@ export class SegmentBuilderService {
         }
       }
 
-      // STEP 4: BINNING
+      // STEP 4b: BINNING
+      // CHANGE: removed `seed: this.seed` — BinStrategy no longer accepts it
       const binStrategy = new BinStrategy(
         { numeric: selectedNumeric, categorical: selectedCategorical },
         {
-          seed:   this.seed,
           logger: this.logger,
           config: {
             ...this.config,
@@ -253,51 +215,50 @@ export class SegmentBuilderService {
         audit:       binAudit
       } = binStrategy.build();
 
-      this.seed = binStrategy.seed;
+      // CHANGE: removed `this.seed = binStrategy.seed`
       audit.steps.binning = binAudit;
 
-      // only throw if BOTH are empty.
-      // It's valid to have only numeric bins (no distinctValues for any categorical).
-      // The segment model only requires at least one attribute total.
       if (!numericBins.length && !categoricalBins.length) {
         throw new Error('❌ No bins generated — no numeric or categorical bins available');
       }
 
       // STEP 5: METRIC SELECTION
-      // Pass only numeric columns to MetricSelector
-      // Prevents SUM/AVG/MIN/MAX being applied to categorical/text columns
-      // which causes: "function sum(text) does not exist" backend error
+      // Pass only numeric columns — prevents SUM/AVG/MIN/MAX on categorical columns
       const numericSchema = schema.filter(c => c.type === 'numeric');
       if (!numericSchema.length) throw new Error('❌ No numeric columns available for metrics');
 
-      let allowedMetrics=null;
+      let allowedMetrics = null;
       try {
         const whitelistMetrics = JSON.parse(readFileSync(WHITELIST_PATH, 'utf-8'));
         allowedMetrics = whitelistMetrics[this.table] || null;
-        if (allowedMetrics && allowedMetrics.length) {
-          this.logger?.info?.({ type: 'METRIC_WHITELIST_LOADED', table: this.table, count: allowedMetrics.length });
+        if (allowedMetrics?.length) {
+          this.logger?.info?.({
+            type:  'METRIC_WHITELIST_LOADED',
+            table: this.table,
+            count: allowedMetrics.length
+          });
         }
       } catch (err) {
         this.logger?.warn?.({ type: 'METRIC_WHITELIST_FAILED', error: err.message });
       }
 
+      // CHANGE: removed `seed: this.seed` — MetricSelector no longer accepts it
       const metricSelector = new MetricSelector(
         numericSchema,
-        { seed: this.seed, 
-          logger: this.logger, 
+        {
+          logger: this.logger,
           config: {
-            ...this.config ,
-            allowedMetrics   // pass the whitelist (null = allow all)
-
+            ...this.config,
+            allowedMetrics
           }
-          }
+        }
       );
 
       const { metrics, audit: metricAudit } = metricSelector.select(
         this.config.metricsCount || 1
       );
 
-      this.seed = metricSelector.seed;
+      // CHANGE: removed `this.seed = metricSelector.seed`
       audit.steps.metrics = metricAudit;
 
       if (!metrics.length) {
@@ -329,22 +290,16 @@ export class SegmentBuilderService {
       metrics.forEach(metric => segment.addMetric(metric));
 
       // STEP 7: FINALIZE
-      audit.seedEnd = this.seed;
-
       const payload = segment.buildPayload();
 
-      // _meta — attached to every payload for audit + replay
+      // _meta — attached to every payload for audit traceability
+      // CHANGE: removed seed, seedEnd, reproducible, replayCommand —
+      // none of these are meaningful without a seed system
       const _meta = {
-        seed:          seedStart,
-        seedEnd:       this.seed,
-        schemaHash:    this.schemaHash,
-        table:         this.table,
-        builtAt:       audit.builtAt,
-        runId:         audit.runId,
-        reproducible:  seedStart !== null,
-        replayCommand: seedStart !== null
-          ? `SEED=${seedStart} npx playwright test`
-          : 'No seed — run is not reproducible'
+        schemaHash: this.schemaHash,
+        table:      this.table,
+        builtAt:    audit.builtAt,
+        runId:      audit.runId
       };
 
       return { ...payload, _meta, serviceAudit: audit };
@@ -354,15 +309,15 @@ export class SegmentBuilderService {
         type:    'SEGMENT_BUILD_FAILED',
         message: error.message,
         runId:   audit.runId,
-        seed:    seedStart,
         table:   this.table
+        // CHANGE: removed `seed` from error log
       });
       throw error;
     }
   }
 
   // ============================================================
-  // DISPOSE — clean up HTTP client after tests
+  // DISPOSE
   // ============================================================
   async dispose() {
     try {
@@ -373,9 +328,7 @@ export class SegmentBuilderService {
   // ============================================================
   // TEST SUPPORT
   // ============================================================
-  resetSeed() {
-    this.seed = this.initialSeed;
-  }
+  // CHANGE: removed resetSeed() — no seed state exists to reset
 
   setDistinctValuesMap(map) {
     this.distinctValuesMap = map;
@@ -385,7 +338,7 @@ export class SegmentBuilderService {
     return {
       table:      this.table,
       schemaHash: this.schemaHash,
-      seed:       this.seed,
+      // CHANGE: removed `seed` field — no seed to snapshot
       columns:    this.columns.length,
       config:     { ...this.config }
     };

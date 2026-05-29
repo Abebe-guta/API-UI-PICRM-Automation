@@ -1,6 +1,6 @@
-// strategies/selection/metric.selector.js
+// strategies/metric.selector.js
 
-//These are the only allowed aggregations.
+// These are the only allowed aggregations.
 const VALID_AGGREGATIONS = Object.freeze([
   'SUM',
   'AVG',
@@ -8,7 +8,8 @@ const VALID_AGGREGATIONS = Object.freeze([
   'MAX',
   'COUNT'
 ]);
-//These operations only work on numeric columns.
+
+// These operations only work on numeric columns. set is for fast lookuup during validation
 const NUMERIC_ONLY = new Set([
   'SUM',
   'AVG',
@@ -20,60 +21,52 @@ export class MetricSelector {
   constructor(
     columns = [],
     {
-      seed = null,
+    
       logger = null,
       config = {}
     } = {}
   ) {
-    //Store columns
+    // Store columns
     this.columns = columns;
 
-    //Seed setup (Enables deterministic metric selection)
-    this.seed = seed;
-    this.initialSeed = seed;
-
-    //Logger
+    // Logger
     this.logger = logger;
 
     // CONFIG (extendable)
     this.numericAggs = config.numericAggs || ['SUM', 'AVG', 'MIN', 'MAX'];
     this.categoricalAggs = config.categoricalAggs || ['COUNT'];
-    this.allowedMetrics = config.allowedMetrics || null;   // array of allowed column names (optional)
+    this.allowedMetrics = config.allowedMetrics || null; // optional column name whitelist
   }
 
-  // -----------------------------
+  // =========================================================
   // MAIN ENTRY
-  // -----------------------------
+  // =========================================================
   select(metricsCount = 1) {
-    //Seed snapshot (Tracks randomness state.)
-    const seedStart = this.seed;
-
-    //Create audit object
     const audit = {
       runId: (typeof crypto !== 'undefined' && crypto.randomUUID)
         ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random()}`,
+        : `run-${Date.now()}`,
 
       timestamp: Date.now(),
-      seedStart,
-      seedEnd: null,
 
       totalColumns: this.columns.length,
       selected: []
     };
-     //Validate input
+
+    // Validate input
     if (!this.columns.length) {
       throw new Error('❌ No columns available for metrics');
     }
-      //Split columns by type
+
+    // Split columns by type
     const numericColumns = this.columns.filter(c => c.type === 'numeric');
     const categoricalColumns = this.columns.filter(c => c.type === 'categorical');
-
+    //Ensure Valid Columns Exist
     if (!numericColumns.length && !categoricalColumns.length) {
       throw new Error('❌ No valid columns for metrics');
     }
 
-    // build candidate pool instead of pushing all
+    // Build candidate pool
     let candidates = [];
 
     // numeric candidates
@@ -97,59 +90,56 @@ export class MetricSelector {
         });
       });
     });
+
     // Apply allowed metrics whitelist if provided
     if (this.allowedMetrics && this.allowedMetrics.length) {
       const allowedSet = new Set(this.allowedMetrics);
       const before = candidates.length;
       candidates = candidates.filter(c => allowedSet.has(c.column_name));
+      //Handle No Remaining Candidates
       if (candidates.length === 0) {
         this.logger?.warn?.({
           type: 'NO_METRIC_CANDIDATES_AFTER_WHITELIST',
           allowedMetrics: this.allowedMetrics,
           originalCount: before
         });
-        audit.seedEnd = this.seed;
         return { metrics: [], audit };
       }
     }
 
-    //Handle Empty candidates
-       if (!candidates.length) {
+    // Handle empty candidates
+    if (!candidates.length) {
       this.logger?.warn?.({ type: 'NO_METRIC_CANDIDATES' });
-      audit.seedEnd = this.seed;
       return { metrics: [], audit };
     }
 
-    // shuffle first (removes ordering bias)
+    // Shuffle first (removes ordering bias)
     const shuffled = this.shuffle(candidates);
 
-    // avoid duplicate column selection
+    // Avoid duplicate column selection
     const seenColumns = new Set();
     const result = [];
-       //Loop through shuffled candidates
+
     for (const metric of shuffled) {
-         //Stop when enough metrics
       if (result.length >= metricsCount) break;
-        //Avoid duplicate columns
       if (seenColumns.has(metric.column_name)) continue;
 
       this.validate(metric);
-
+     //add selected metric
       result.push({
         column_name: metric.column_name,
         aggregation: metric.aggregation
       });
-        //Track used column
+      //mark column as used (future metrics from same column are skipped)
       seenColumns.add(metric.column_name);
 
-      // audit tracking
       audit.selected.push({
         column: metric.column_name,
         aggregation: metric.aggregation
       });
     }
 
-    // fallback if not enough unique columns
+    // Fallback: allow duplicate columns if not enough unique ones
     if (result.length < metricsCount) {
       for (const metric of shuffled) {
         if (result.length >= metricsCount) break;
@@ -169,43 +159,24 @@ export class MetricSelector {
       }
     }
 
-    audit.seedEnd = this.seed;
-
-    return {
-      metrics: result,
-      audit
-    };
+    return { metrics: result, audit };
   }
 
-  // -----------------------------
-  // SHUFFLE (SEEDED)
-  // -----------------------------
+  // =========================================================
+  // SHUFFLE
+  // =========================================================
   shuffle(array) {
     const arr = [...array];
-
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = this.random(i + 1);
+      const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-
     return arr;
   }
 
-  // -----------------------------
-  // SEEDED RANDOM
-  // -----------------------------
-  random(max) {
-    if (this.seed !== null) {
-      this.seed = (this.seed * 1664525 + 1013904223) % 4294967296;
-      return this.seed % max;
-    }
-
-    return Math.floor(Math.random() * max);
-  }
-
-  // -----------------------------
+  // =========================================================
   // VALIDATION
-  // -----------------------------
+  // =========================================================
   validate(metric) {
     if (!VALID_AGGREGATIONS.includes(metric.aggregation)) {
       throw new Error(`❌ Invalid aggregation: ${metric.aggregation}`);
@@ -222,12 +193,5 @@ export class MetricSelector {
   isNumeric(columnName) {
     const col = this.columns.find(c => c.name === columnName);
     return col?.type === 'numeric';
-  }
-
-  // -----------------------------
-  // TEST SUPPORT
-  // -----------------------------
-  resetSeed() {
-    this.seed = this.initialSeed;
   }
 }

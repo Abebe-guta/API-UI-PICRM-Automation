@@ -52,7 +52,7 @@ export function validateSegmentListResponse(data) {
   });
 
   // =========================================================
-  // 🔧 FIX: return data (NOT true)
+  // return data
   // This ensures getSegments() downstream logic works
   // =========================================================
   return data;

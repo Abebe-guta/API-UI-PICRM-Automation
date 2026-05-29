@@ -244,43 +244,23 @@ export class BasePage {
   // TABLE HELPERS
   // =====================================================
 
-  async getRowByCellText(
-    rowSelector,
-    text
-  ) {
+  async getRowByCellText(rowSelector, text) {
 
-    return this.page
-      .locator(rowSelector)
-      .filter({
-        has: this.page.locator(
-          `td:text-is("${text}")`
-        ),
+    return this.page.locator(rowSelector).filter({
+        has: this.page.locator(`td:text-is("${text}")`),
       });
   }
-
-  async clickRowAction({
-    rowSelector,
-    rowText,
-    actionSelector,
-  }) {
-
+  async clickRowAction({rowSelector,rowText, actionSelector,}) 
+  {
     const row =
-      await this.getRowByCellText(
-        rowSelector,
-        rowText
-      );
+      await this.getRowByCellText(rowSelector,rowText);
 
-    await row
-      .locator(actionSelector)
-      .waitFor({
+    await row.locator(actionSelector).waitFor({
         state: 'visible',
         timeout: 30000
       });
 
-    await row
-      .locator(actionSelector)
-      .click();
-
+    await row.locator(actionSelector).click();
     await this.waitForNetworkIdle();
   }
 
@@ -312,15 +292,10 @@ export class BasePage {
       });
   }
 
-  async waitForText(
-    selector,
-    expected,
-    timeout = 30000
-  ) {
-
-    await expect(
-      this.locator(selector)
-    ).toContainText(expected, {
+  async waitForText(selector,expected,timeout = 30000) 
+  {
+    await expect(this.locator(selector)).toContainText(expected, 
+      {
       timeout
     });
   }

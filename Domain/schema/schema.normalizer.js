@@ -55,8 +55,6 @@ function normalizeColumn(raw) {
     raw.column_name ||
     raw.field_name;
 
-  // FIX: cleanName declared at function scope — was inside if-block before
-  // which caused ReferenceError when used in the return statement below
   const cleanName = rawName ? String(rawName).trim() : '';
 
   // Validation: name must be a non-empty string
@@ -65,8 +63,7 @@ function normalizeColumn(raw) {
     return null;
   }
 
-  // FIX: blocked fields check moved here — after name is confirmed valid
-  // Previously this was nested inside the invalid-name guard (unreachable)
+  //blocked fields check moved here — after name is confirmed valid
   if (BLOCKED_FIELDS.includes(cleanName)) {
     return null;
   }
@@ -101,15 +98,17 @@ function normalizeColumn(raw) {
   // -----------------------------
   // VALIDATION GUARD
   // -----------------------------
-  if (!type)                    return null;
-  if (!VALID_TYPES.includes(type)) return null;
-
+  if (!type)                    
+    return null;
+  if (!VALID_TYPES.includes(type)) 
+    return null;
   return Object.freeze({ name: cleanName, type });
 }
 
 // -----------------------------
 // Normalize full schema
 // -----------------------------
+//cleans and validates the ENTIRE schema array.
 export function normalizeSchema(columns = []) {
   if (!Array.isArray(columns)) {
     throw new Error('❌ Schema must be an array');

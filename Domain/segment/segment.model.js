@@ -4,7 +4,7 @@ const VALID_MODES = Object.freeze(['bins', 'distinct_values']);
 
 export class SegmentModel {
   constructor(
-    { table, schema = [] }, // schema injected
+    { table, schema = [] },
     {
       logger = null,
       configVersion = 'v1'
@@ -16,7 +16,6 @@ export class SegmentModel {
 
     this.table = table.trim();
 
-    // schema awareness
     this.schema = schema;
     this.schemaMap = new Map(schema.map(c => [c.name, c.type]));
     this.schemaSet = new Set(schema.map(c => c.name));
@@ -26,26 +25,26 @@ export class SegmentModel {
 
     this.logger = logger;
 
-    // audit (aligned with your pipeline)
     this.audit = {
       runId: (typeof crypto !== 'undefined' && crypto.randomUUID)
         ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random()}`,
+        : `run-${Date.now()}`,
 
-      timestamp: Date.now(),
+      // CHANGE: was Date.now() (raw integer) — aligned to ISO string
+      // to match timestamp format used everywhere else in the codebase
+      timestamp: new Date().toISOString(),
+
       table: this.table,
       configVersion,
-
       schemaSize: schema.length,
-
       attributes: [],
       metrics: []
     };
   }
 
-  // -----------------------------
+  // =========================================================
   // ATTRIBUTE VALIDATION
-  // -----------------------------
+  // =========================================================
   validateAttribute(attr) {
     if (
       !attr?.column_name ||
@@ -57,7 +56,6 @@ export class SegmentModel {
 
     const columnName = attr.column_name.trim();
 
-    // schema existence validation
     if (!this.schemaSet.has(columnName)) {
       throw new Error(`❌ Column not found in schema: ${columnName}`);
     }
@@ -68,7 +66,6 @@ export class SegmentModel {
       throw new Error(`❌ Invalid mode: ${attr.mode}`);
     }
 
-    // type enforcement
     if (attr.mode === 'bins' && columnType !== 'numeric') {
       throw new Error(`❌ ${columnName} must be numeric for bins`);
     }
@@ -85,7 +82,11 @@ export class SegmentModel {
         throw new Error(`❌ ${columnName} requires selected_values`);
       }
 
-      // normalize + dedupe values
+      // CHANGE: validation only — normalization moved to addAttribute()
+      // so we never mutate the caller's object here.
+      // Previously `attr.selected_values = normalizedValues` was a silent
+      // side effect that modified the object passed in from binStrategy.build()
+      // before it was frozen — caller had no visibility of the mutation.
       const normalizedValues = [...new Set(
         attr.selected_values
           .map(v => (typeof v === 'string' ? v.trim() : v))
@@ -99,7 +100,8 @@ export class SegmentModel {
         throw new Error(`❌ Invalid selected value in ${columnName}`);
       }
 
-      attr.selected_values = normalizedValues;
+      // CHANGE: return normalized values instead of mutating attr
+      return { columnName, normalizedValues };
     }
 
     // -----------------------------
@@ -132,7 +134,6 @@ export class SegmentModel {
         }
       }
 
-      // bin count safety
       if (attr.numeric_bins.length > 50) {
         this.logger?.warn?.({
           type: 'EXCESSIVE_BIN_COUNT',
@@ -141,43 +142,47 @@ export class SegmentModel {
         });
       }
     }
+
+    return { columnName, normalizedValues: null };
   }
 
-  // -----------------------------
+  // =========================================================
   // ADD ATTRIBUTE
-  // -----------------------------
+  // =========================================================
   addAttribute(attr) {
-    this.validateAttribute(attr);
-
-    const normalizedName = attr.column_name.trim();
+    // CHANGE: validateAttribute() now returns { columnName, normalizedValues }
+    // instead of mutating attr directly. normalizedValues is only set for
+    // distinct_values mode — null for bins mode.
+    const { columnName, normalizedValues } = this.validateAttribute(attr);
 
     const exists = this.attributes.find(
-      a => a.column_name === normalizedName
+      a => a.column_name === columnName
     );
 
     if (exists) {
-      throw new Error(`❌ Duplicate attribute: ${normalizedName}`);
+      throw new Error(`❌ Duplicate attribute: ${columnName}`);
     }
 
+    // CHANGE: apply normalizedValues here when building the frozen object,
+    // so the caller's original object is never touched
     const normalized = Object.freeze({
       ...attr,
-      column_name: normalizedName
+      column_name: columnName,
+      ...(normalizedValues !== null && { selected_values: normalizedValues })
     });
 
     this.attributes.push(normalized);
 
-    // audit tracking
     this.audit.attributes.push({
-      column: normalizedName,
+      column: columnName,
       mode: attr.mode
     });
   }
 
-  // -----------------------------
-  // METRICS (UPDATED STRUCTURE)
-  // -----------------------------
+  // =========================================================
+  // ADD METRIC
+  // =========================================================
   addMetric(metric) {
-    // now expects structured metric
     if (
       !metric ||
       typeof metric !== 'object' ||
@@ -210,18 +215,18 @@ export class SegmentModel {
 
     this.targetMetrics.push(normalized);
 
-    // audit tracking
     this.audit.metrics.push(normalized);
   }
 
-  // -----------------------------
+  // =========================================================
   // INTERNAL CONFIG BUILDER
-  // -----------------------------
+  // =========================================================
   buildConfig() {
     return {
       table_name: this.table,
 
-      // deterministic ordering
+      // CHANGE: updated comment — sort is for consistent payload shape
+      // regardless of insertion order, not "deterministic" in the seed sense
       attributes: [...this.attributes].sort((a, b) =>
         a.column_name.localeCompare(b.column_name)
       ),
@@ -234,9 +239,9 @@ export class SegmentModel {
     };
   }
 
-  // -----------------------------
+  // =========================================================
   // FINAL PAYLOAD
-  // -----------------------------
+  // =========================================================
   buildPayload() {
     if (this.attributes.length === 0) {
       throw new Error('❌ At least one attribute required');
@@ -248,8 +253,6 @@ export class SegmentModel {
 
     return {
       config: this.buildConfig(),
-
-      //attach audit for traceability
       audit: this.audit
     };
   }

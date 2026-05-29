@@ -3,19 +3,11 @@
 // =============================================================
 
 import { test, expect }          from '../../fixtures/base.fixture.js';
-import { SegmentBuilderService } from '../../services/segmentBuilder.service.js';
 import { buildSegmentName, buildSegmentDescription } from '../../utils/testData.js';
-import fs   from 'fs';
-import path from 'path';
 
 const BLOCKED_FIELDS = [
   'account_number', 'phone_number', 'tin_number', 'email', 'customer_id'
 ];
-
-function getSavedToken() {
-  const file = path.resolve('.auth/token.json');
-  return JSON.parse(fs.readFileSync(file, 'utf-8')).token;
-}
 
 // =============================================================
 // SCENARIO 1: VALIDATION (no database side effects)
@@ -84,45 +76,6 @@ test.describe('Validation – segment payload & preview', () => {
       }
     });
   });
-
-  // ----------------------------------------------------------
-  // Determinism
-  // ----------------------------------------------------------
-  test.describe('Determinism', () => {
-    test('same seed → identical payload', async ({ seed }) => {
-      const token = getSavedToken();
-      const s1 = new SegmentBuilderService({ seed, token });
-      const s2 = new SegmentBuilderService({ seed, token });
-      await s1.init();
-      await s2.init();
-      const p1 = await s1.build();
-      const p2 = await s2.build();
-      expect(p1.config).toEqual(p2.config);
-      await s1.dispose();
-      await s2.dispose();
-    });
-
-    test('different seeds → different payloads', async ({ seed }) => {
-      const token = getSavedToken();
-      const s1 = new SegmentBuilderService({ seed, token });
-      const s2 = new SegmentBuilderService({ seed: seed + 1, token });
-      await s1.init();
-      await s2.init();
-      const p1 = await s1.build();
-      const p2 = await s2.build();
-      expect(JSON.stringify(p1.config)).not.toBe(JSON.stringify(p2.config));
-      await s1.dispose();
-      await s2.dispose();
-    });
-
-    test('resetSeed() produces identical re-run', async ({ builder }) => {
-      const p1 = await builder.build();
-      builder.resetSeed();
-      const p2 = await builder.build();
-      expect(p1.config).toEqual(p2.config);
-    });
-  });
-
   // ----------------------------------------------------------
   // Schema safety
   // ----------------------------------------------------------
@@ -151,12 +104,14 @@ test.describe('Validation – segment payload & preview', () => {
   // _meta validation
   // ----------------------------------------------------------
   test.describe('_meta validation', () => {
-    test('meta contains replay data', async ({ builder, seed }) => {
+    test('_meta contains expected fields', async ({ builder }) => {
       const { _meta } = await builder.build();
-      expect(_meta.seed).toBe(seed);
       expect(_meta.schemaHash).toBe(builder.schemaHash);
-      expect(_meta.reproducible).toBe(true);
-      expect(_meta.replayCommand).toContain(String(seed));
+      expect(_meta.table).toBe(builder.table);
+      expect(typeof _meta.runId).toBe('string');
+      expect(_meta.runId.length).toBeGreaterThan(0);
+      expect(typeof _meta.builtAt).toBe('string');
+      expect(_meta.builtAt.length).toBeGreaterThan(0);
     });
 
     test('serviceAudit covers all pipeline steps', async ({ builder }) => {
@@ -167,6 +122,12 @@ test.describe('Validation – segment payload & preview', () => {
       expect(serviceAudit.steps).toHaveProperty('binning');
       expect(serviceAudit.steps).toHaveProperty('metrics');
     });
+
+    //test to assert tableSelection mode is always 'random'
+    test('tableSelection mode is random', async ({ builder }) => {
+      const { serviceAudit } = await builder.build();
+      expect(serviceAudit.steps.tableSelection.mode).toBe('random');
+    });
   });
 });
 
@@ -174,23 +135,41 @@ test.describe('Validation – segment payload & preview', () => {
 // SCENARIO 2: CREATE & READ (actual segment creation)
 // =============================================================
 test.describe('Create & Read – segment lifecycle', () => {
-  test('creates segment with valid id', async ({ builder, segmentAPI, seed }) => {
+  
+  test('creates segment and returns valid id', async ({ builder, segmentAPI }) => {
     const payload = await builder.build();
-    payload.config.name = buildSegmentName(payload.config.table_name, seed);
+    payload.config.attributes = payload.config.attributes.slice(0, 1);
+    payload.config.name = buildSegmentName(payload.config.table_name, builder.schemaHash);
     payload.config.description = buildSegmentDescription(
-      payload.config.table_name, seed, builder.schemaHash
+      payload.config.table_name, builder.schemaHash
     );
-    const res = await segmentAPI.createSegment(payload.config);
-    expect(res.id).toBeTruthy();
+    const segment = await segmentAPI.createSegment(payload.config);
+    expect(segment.id).toBeTruthy();
   });
 
-  test('created segment exists in list', async ({ builder, segmentAPI, seed }) => {
+  test('created segment appears in getSegments() list', async ({ builder, segmentAPI }) => {
     const payload = await builder.build();
-    payload.config.name = buildSegmentName(payload.config.table_name, seed);
-    const created = await segmentAPI.createSegment(payload.config);
+    payload.config.attributes = payload.config.attributes.slice(0, 1);
+    payload.config.name = buildSegmentName(payload.config.table_name, builder.schemaHash);
+    payload.config.description = buildSegmentDescription(
+      payload.config.table_name, builder.schemaHash
+    );
+    const segment = await segmentAPI.createSegment(payload.config);
     const list = await segmentAPI.getSegments();
-    const segments = Array.isArray(list) ? list : list?.data ?? [];
-    const found = segments.find(s => s.id === created.id);
+    const segments = Array.isArray(list) ? list : (list?.data ?? []);
+    const found = segments.find(s => s.id === segment.id);
     expect(found).toBeTruthy();
+    expect(found.name).toBe(payload.config.name);
+    expect(found.status).toBe('active');
+  });
+
+  test('creates segment with name only (no description)', async ({ builder, segmentAPI }) => {
+    const payload = await builder.build();
+    payload.config.attributes = payload.config.attributes.slice(0, 1);
+    payload.config.name = buildSegmentName(payload.config.table_name, builder.schemaHash);
+    delete payload.config.description;
+    const segment = await segmentAPI.createSegment(payload.config);
+    expect(segment.id).toBeTruthy();
+    expect(segment.description ?? '').toBeFalsy();
   });
 });

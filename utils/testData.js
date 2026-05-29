@@ -1,5 +1,5 @@
 // =============================================================
-// utils/testData.js (FINAL - ENTERPRISE READY)
+// utils/testData.js
 // PURPOSE: Static configs, factories, validation helpers
 // RULE   : No orchestration / no business logic
 // =============================================================
@@ -28,20 +28,10 @@ export const ENV = {
 // LAYER  : Utils — mock inputs, fallback data, default configs
 // RULE   : NO business logic. Pure static data + simple factories.
 // USED BY: fixtures/, tests/, segmentBuilder.service.js
-//
-// WHY THIS FILE EXISTS:
-//   Centralises every "magic value" in the test suite. If the
-//   API changes a field name or a default limit, you change it
-//   here once — not scattered across 10 test files.
 // =============================================================
 
 // -------------------------------------------------------------
 // DEFAULT CONFIGS
-//
-// WHY centralise timeouts and limits?
-//   Playwright's default timeout is 30s. Our API can be slow on
-//   cold starts. Having one place to bump `timeoutMs` means a
-//   single PR fixes every test instead of a grep-and-replace.
 // -------------------------------------------------------------
 
 export const DEFAULT_CONFIG = {
@@ -50,19 +40,11 @@ export const DEFAULT_CONFIG = {
   retryDelayMs:    500,     // ms between retries
   previewRowLimit: 100,     // max rows we request in preview
   maxConditions:   10,      // segment model safety cap
-  defaultSeed:     42,      // used when SEED env var is absent
-                            // 42 is arbitrary but stable — do not
-                            // change without updating CI baselines
 };
 
 
 // -------------------------------------------------------------
 // COLUMN TYPE CONSTANTS
-//
-// WHY constants instead of raw strings?
-//   'numeric' typed in 3 files = 3 places to fix if backend
-//   renames it to 'number'. Constants = one place to fix.
-//   These must mirror what schema.normalizer.js produces.
 // -------------------------------------------------------------
 
 export const COLUMN_TYPES = {
@@ -74,12 +56,6 @@ export const COLUMN_TYPES = {
 
 // -------------------------------------------------------------
 // OPERATOR MAP
-//
-// WHY here and not in the strategies?
-//   Strategies select columns — they don't build query operators.
-//   Tests need this map to assert that generated payloads only
-//   use valid operators. Centralising it avoids duplication
-//   between the strategy layer and the test layer.
 // -------------------------------------------------------------
 
 export const OPERATORS_BY_TYPE = {
@@ -100,17 +76,6 @@ export const OPERATORS_BY_TYPE = {
 
 // -------------------------------------------------------------
 // MOCK SCHEMA
-//
-// WHY a mock schema?
-//   Unit tests for strategies and the segment model should not
-//   hit the real API. This mock produces the same shape as
-//   schema.normalizer.js so strategies behave identically.
-//
-// WHY these specific columns?
-//   They cover all three types (numeric / categorical / date)
-//   and include edge cases: nullable fields, metric-eligible
-//   fields, and an enum-style categorical. This exercises the
-//   full branching logic in attribute.selector and bin.strategy.
 // -------------------------------------------------------------
 
 export const MOCK_SCHEMA = {
@@ -131,8 +96,8 @@ export const MOCK_SCHEMA = {
       range: { min: 18, max: 90 } },
 
     // categorical — enum-style, small cardinality
-    { name: 'country',      type: COLUMN_TYPES.CATEGORICAL,  nullable: true,
-      values: [ 'ET'] },
+    { name: 'region',      type: COLUMN_TYPES.CATEGORICAL,  nullable: true,
+      values: [ 'AA','OR', 'TG'] },
 
     // categorical — boolean stored as string (common in loan data)
     { name: 'is_active',    type: COLUMN_TYPES.CATEGORICAL,  nullable: false },
@@ -159,13 +124,9 @@ export const MOCK_SCHEMA = {
 // FALLBACK SEGMENT PAYLOAD
 //
 // WHY a fallback payload?
-//   If segmentBuilder.service fails to build dynamically (e.g.
-//   the API is down during a test run), tests that only care about
-//   contract shape — not content — can still proceed using this.
-//   It means a network outage doesn't wipe out the entire suite.
-//
-// _meta.source: 'fallback' lets the audit logger flag this run
-//   as non-deterministic so it's excluded from compliance reports.
+//   If segmentBuilder.service fails to build dynamically
+//  (e.g.  the API is down during a test run), tests that only care about contract shape — not content — can still proceed using this.
+// _meta.source: 'fallback' lets the audit logger flag
 // -------------------------------------------------------------
 
 export const FALLBACK_SEGMENT_PAYLOAD = {
@@ -182,9 +143,9 @@ export const FALLBACK_SEGMENT_PAYLOAD = {
         ]
       },
       {
-        column_name:    'country',
+        column_name:    'region',
         mode:           'distinct_values',
-        selected_values: ['US', 'UK', 'ET']
+        selected_values: ['AA','OR', 'TG']
       }
     ],
     derived_columns: null,
@@ -193,12 +154,10 @@ export const FALLBACK_SEGMENT_PAYLOAD = {
     ],
   },
   _meta: {
-    seed:          DEFAULT_CONFIG.defaultSeed,
     schemaHash:    MOCK_SCHEMA.schemaHash,
     source:        'fallback',   // ← signals this was not dynamically built
     reproducible:  true,
     builtAt:       null,         // filled at runtime so it's always accurate
-    replayCommand: `SEED=${DEFAULT_CONFIG.defaultSeed} npx playwright test`
   },
 };
 
@@ -272,15 +231,13 @@ export const MOCK_RESPONSES = {
 
 /**
  * Build a traceable segment name.
- * e.g. buildSegmentName('loan_data', 42) → 'AutoSeg_loan_data_seed42'
+ * e.g. buildSegmentName('loan_data') → 'Seg_loan_data_183924'
  *
  * @param {string}        tableName
- * @param {number|string} seed
+ * 
  */
-export function buildSegmentName(tableName, seed) {
+export function buildSegmentName(tableName) {
   const cleanTable = String(tableName).trim().replace(/_+$/, '');
-  // Timestamp suffix guarantees uniqueness across runs
-  // Seed is tracked separately in the Playwright report + audit log
   const shortTs = String(Date.now()).slice(-6);
   return `Seg_${cleanTable}_${shortTs}`;
 }
@@ -294,37 +251,17 @@ export function buildSegmentName(tableName, seed) {
  * @param {number|string} seed
  * @param {string}        schemaHash
  */
-export function buildSegmentDescription(tableName, seed, schemaHash) {
+export function buildSegmentDescription(tableName, schemaHash) {
   return (
     `Auto-generated segment for table "${tableName}". ` +
-    `Seed: ${seed}. Schema: ${schemaHash}. ` +
-    `Replayable with: SEED=${seed} npx playwright test`
+    `Schema: ${schemaHash}. ` 
   );
 }
 
 
 // -------------------------------------------------------------
 // PLAYWRIGHT TEST ANNOTATION HELPERS
-//
-// WHY annotation helpers?
-//   Playwright's HTML report shows `testInfo.annotations` as
-//   labelled badges on each test. By using these helpers:
-//   - Every test gets a consistent 'seed' badge
-//   - Every test gets a consistent 'schemaHash' badge
-//   - You can filter the report by seed to find related failures
-//   - CI can parse annotations to group failures by schema version
-//
-// Usage: testInfo.annotations.push(seedAnnotation(seed))
 // -------------------------------------------------------------
-
-/**
- * Playwright annotation for the seed used in this run.
- * Renders as: [seed] 42
- * @param {number|string} seed
- */
-export function seedAnnotation(seed) {
-  return { type: 'seed', description: String(seed) };
-}
 
 /**
  * Playwright annotation for the schema hash.

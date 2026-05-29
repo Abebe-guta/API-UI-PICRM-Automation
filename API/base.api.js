@@ -20,7 +20,7 @@ export class BaseAPI {
   }
 
   // -----------------------------
-  // INIT – now accepts an initial token
+  // INIT – accepts an initial token
   // -----------------------------
   async init(initialToken = null) {
     const headers = {

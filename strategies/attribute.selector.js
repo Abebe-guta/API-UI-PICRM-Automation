@@ -4,7 +4,6 @@ export class AttributeSelector {
   constructor(
     { numeric = [], categorical = [] },
     {
-      seed = null,
       mode = 'balanced',
       config = {},
       logger = null
@@ -13,16 +12,9 @@ export class AttributeSelector {
     this.numeric = numeric;
     this.categorical = categorical;
 
-    this.seed = seed;
-    this.initialSeed = seed;
-
     this.mode = mode;
     this.logger = logger;
 
-    // =========================================================
-    // FIX #1: prevent undefined or injected default bias
-    // BEFORE: could be string or undefined → caused hidden bias
-    // =========================================================
     this.preferredNumeric = Array.isArray(config.preferredNumeric)
       ? config.preferredNumeric
       : [];
@@ -31,7 +23,6 @@ export class AttributeSelector {
       ? config.preferredCategorical
       : [];
 
-    // DEBUG (optional - remove in prod)
     this.logger?.debug?.({
       type: 'ATTRIBUTE_SELECTOR_INIT',
       preferredNumeric: this.preferredNumeric,
@@ -39,24 +30,23 @@ export class AttributeSelector {
     });
   }
 
-  // -----------------------------
+  // =========================================================
   // MAIN ENTRY
-  // -----------------------------
+  // =========================================================
   select({ numericCount = 1, categoricalCount = 1 } = {}) {
-    const seedStart = this.seed;
-
     const audit = {
       selected: [],
       preferredUsed: [],
       fallbackUsed: [],
+
+      // runId is ONLY for log correlation (not selection logic)
       runId:
         (typeof crypto !== 'undefined' && crypto.randomUUID)
           ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random()}`,
+          : `run-${Date.now()}`,
+
       timestamp: new Date().toISOString(),
       mode: this.mode,
-      seedStart,
-      seedEnd: seedStart,
       numericPoolSize: this.numeric.length,
       categoricalPoolSize: this.categorical.length
     };
@@ -67,34 +57,18 @@ export class AttributeSelector {
         type: 'EMPTY_SCHEMA',
         runId: audit.runId
       });
-
       return { numeric: [], categorical: [], audit };
     }
 
     const numeric = this.selectNumeric(numericCount, audit);
     const categorical = this.selectCategorical(categoricalCount, audit);
 
-    audit.seedEnd = this.seed;
-
-    // =========================================================
-    // FIX #2: proper logging only when real drift happens
-    // =========================================================
-    if (seedStart !== audit.seedEnd) {
-      this.logger?.warn?.({
-        type: 'SEED_DRIFT_DETECTED',
-        note: 'Seed should not mutate in deterministic mode',
-        seedStart,
-        seedEnd: audit.seedEnd,
-        runId: audit.runId
-      });
-    }
-
     return { numeric, categorical, audit };
   }
 
-  // -----------------------------
+  // =========================================================
   // NUMERIC
-  // -----------------------------
+  // =========================================================
   selectNumeric(count, audit) {
     if (!this.numeric.length) {
       this.logger?.warn?.({
@@ -117,9 +91,9 @@ export class AttributeSelector {
     );
   }
 
-  // -----------------------------
+  // =========================================================
   // CATEGORICAL
-  // -----------------------------
+  // =========================================================
   selectCategorical(count, audit) {
     if (!this.categorical.length) {
       this.logger?.warn?.({
@@ -142,9 +116,9 @@ export class AttributeSelector {
     );
   }
 
-  // -----------------------------
+  // =========================================================
   // BALANCED ENGINE
-  // -----------------------------
+  // =========================================================
   balancedSelect(pool, preferredList, count, type, audit) {
     if (!pool.length) {
       this.logger?.warn?.({
@@ -155,16 +129,33 @@ export class AttributeSelector {
       return [];
     }
 
-    const availableMap = new Map(pool.map(c => [c.name, c]));
+    // ---------------------------------------------------------
+    // Single source of truth for uniqueness (first-write-wins)
+    // ---------------------------------------------------------
+    //create unique items by name to prevent duplicates across preferred and fallback pools
+    const availableMap = new Map();
+
+    for (const item of pool) {
+      //store new names
+      if (!availableMap.has(item.name)) {
+        availableMap.set(item.name, item);
+      }
+      //log duplicates but don't add them to the map to avoid selection (first-write-wins rule)
+      else {
+        this.logger?.warn?.({
+          type: 'DUPLICATE_NAME',
+          name: item.name,
+          runId: audit.runId
+        });
+      }
+    }
+    //Convert preferredList to Set for efficent lookup
+
     const preferredSet = new Set(preferredList);
-
-    const validPreferred = preferredList.filter(name =>
-      availableMap.has(name)
-    );
-
-    const missingPreferred = preferredList.filter(
-      name => !availableMap.has(name)
-    );
+    //Filter valid preferred items actually exist in pool
+    const validPreferred = preferredList.filter(name => availableMap.has(name));
+    //filter missing preferred items for logging
+    const missingPreferred = preferredList.filter(name => !availableMap.has(name));
 
     if (missingPreferred.length) {
       this.logger?.warn?.({
@@ -174,14 +165,18 @@ export class AttributeSelector {
         runId: audit.runId
       });
     }
+    //Convert preferred names → actual objects ('name'->{name:"name", ...data})
+    const preferredItems = validPreferred.map(name =>
+      availableMap.get(name)
+    );
 
-    const preferredItems = validPreferred.map(name => availableMap.get(name));
-
-const filtered = pool.filter(item => !preferredSet.has(item.name));
-const fallbackItems = this.shuffle(this.shuffle(filtered));
-
+   //fallback pool excludes preferred items to avoid duplicates in selection
+    const fallbackItems = Array.from(availableMap.values())
+      .filter(item => !preferredSet.has(item.name));
+    //This will store final output.
     const result = [];
 
+    // Add preferred items first (randomized)
     result.push(
       ...this.pickRandom(
         preferredItems,
@@ -191,9 +186,10 @@ const fallbackItems = this.shuffle(this.shuffle(filtered));
         true
       )
     );
-
+    //Calculate remaining slots after preferred selection
     const remaining = count - result.length;
 
+    // Fill remaining slots using fallback items
     if (remaining > 0) {
       result.push(
         ...this.pickRandom(
@@ -201,24 +197,17 @@ const fallbackItems = this.shuffle(this.shuffle(filtered));
           remaining,
           type,
           audit,
-          false
+          false  //ikely means "not preferred"
         )
       );
     }
 
-    // FINAL DEDUP
-    const seen = new Set();
-    return result.filter(item => {
-      if (!item?.name) return false;
-      if (seen.has(item.name)) return false;
-      seen.add(item.name);
-      return true;
-    });
+    return result;
   }
 
-  // -----------------------------
+  // =========================================================
   // RANDOM PICK
-  // -----------------------------
+  // =========================================================
   pickRandom(arr, count, type, audit, isPreferred) {
     if (!arr?.length || count <= 0) return [];
 
@@ -226,6 +215,7 @@ const fallbackItems = this.shuffle(this.shuffle(filtered));
     const selected = this.shuffle(arr).slice(0, safeCount);
 
     for (const item of selected) {
+      //Store selection record
       audit.selected.push({
         name: item.name,
         type,
@@ -238,37 +228,30 @@ const fallbackItems = this.shuffle(this.shuffle(filtered));
         audit.fallbackUsed.push(item.name);
       }
     }
-     this.logger?.debug?.({
-  type: 'ATTRIBUTE_SELECTED',
-  selected: selected.map(s => s.name),
-  poolType: type
-});
+
+    this.logger?.debug?.({
+      type: 'ATTRIBUTE_SELECTED',
+      selected: selected.map(s => s.name),
+      poolType: type
+    });
 
     return selected;
   }
 
-  // -----------------------------
-  // SAFE DETERMINISTIC SHUFFLE
-  // -----------------------------
+  // =========================================================
+  // Pure Fisher-Yates
+  // Stateless and intentionally non-deterministic
+  // =========================================================
   shuffle(array) {
     const arr = [...array];
-
-    let state = this.seed ?? 123456789;
-
-    const random = (max) => {
-      state = (state * 1664525 + 1013904223) % 4294967296;
-      return state % max;
-    };
-
+    //Fisher-Yates loop
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = random(i + 1);
+      //Pick random index (0 to i)
+      const j = Math.floor(Math.random() * (i + 1));
+      //Swap elements (current element[i] and random element[j])
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
 
     return arr;
-  }
-
-  resetSeed() {
-    this.seed = this.initialSeed;
   }
 }

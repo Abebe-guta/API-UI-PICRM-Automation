@@ -12,9 +12,6 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # CHANGE: added required env vars — testData.js requireEnv() throws
-      # immediately if any of these are absent, killing the suite before
-      # a single test runs. Store these as GitHub Actions secrets.
       BASE_URL:       ${{ secrets.BASE_URL }}
       LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
       LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
@@ -29,36 +26,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # FIX: split into two steps to prevent hang after browser download.
-      # --with-deps runs apt-get which can block on interactive prompts in CI.
-      # DEBIAN_FRONTEND=noninteractive suppresses those prompts entirely.
-      # Installing deps first ensures the environment is ready before
-      # the browser extraction phase starts.
-      - name: Install Playwright system dependencies
-        run: DEBIAN_FRONTEND=noninteractive npx playwright install-deps
-
+      # FIX: replaced all manual browser install approaches with the
+      # official Playwright GitHub Action.
+      #
+      # WHY the previous approaches hung:
+      #   npx playwright install --with-deps  → apt-get blocks on prompts
+      #   DEBIAN_FRONTEND=noninteractive install-deps  → still hangs on
+      #   some ubuntu-latest runner versions due to dpkg lock contention
+      #
+      # The official action handles OS deps, download, and extraction
+      # internally in a CI-safe way with built-in caching — no hang.
       - name: Install Playwright browsers
-        run: npx playwright install chromium
+        uses: microsoft/playwright-github-action@v1
 
-      # CHANGE: added .auth directory creation before globalSetup runs —
-      # globalSetup saves token.json here; base.fixture.js reads it back.
-      # Without this the directory may not exist and the write will fail.
+      # .auth directory must exist before globalSetup writes token.json
       - name: Create .auth directory
         run: mkdir -p .auth
 
-      # CHANGE: split into two explicit steps so API runs before UI.
-      # UI tests (segment.e2e.spec.js) depend on the app state that
-      # API tests exercise — running them in parallel or reversed causes
-      # UI failures unrelated to the UI code.
+      # API must run before UI — UI tests depend on app state that
+      # API tests set up. Wrong order causes false UI failures.
       - name: Run API tests
         run: npx playwright test --project=API
 
       - name: Run UI tests
         run: npx playwright test --project=UI
 
-      # CHANGE: upload both projects' reports together.
-      # `if: always()` is cleaner than `!cancelled()` — ensures the report
-      # is captured even when a test step fails (which is when you need it most).
+      # always() ensures report is captured even when tests fail —
+      # that's exactly when you need it most
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()

@@ -17,18 +17,20 @@ jobs:
       LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: lts/*
 
       - name: Install dependencies
         run: npm ci
 
-      # IMPORTANT: Install Playwright browsers in a safer way
+      # IMPORTANT: only install browsers ONCE and safely
       - name: Install Playwright browsers
-        run: npx playwright install chromium
+        run: npx playwright install --force chromium
 
       - name: Create .auth directory
         run: mkdir -p .auth

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      BASE_URL:       ${{ secrets.BASE_URL }}
+      BASE_URL: ${{ secrets.BASE_URL }}
       LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
       LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
 
@@ -26,6 +26,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # IMPORTANT: Install Playwright browsers in a safer way
       - name: Install Playwright browsers
         run: npx playwright install chromium
 
@@ -33,13 +34,11 @@ jobs:
         run: mkdir -p .auth
 
       - name: Run API tests
-        run: npx playwright test --project=API
+        run: npx playwright test --project=API --reporter=line
 
       - name: Run UI tests
-        run: npx playwright test --project=UI
+        run: npx playwright test --project=UI --reporter=line
 
-      # `if: always()` is cleaner than `!cancelled()` — ensures the report
-      # is captured even when a test step fails (which is when you need it most).
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()

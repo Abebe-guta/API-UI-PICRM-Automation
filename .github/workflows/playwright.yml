@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install
+        run: npx playwright install chromium
 
       - name: Create .auth directory
         run: mkdir -p .auth

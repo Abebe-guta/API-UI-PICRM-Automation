@@ -256,7 +256,7 @@ test.describe('Full user journey: Segment → Pattern → Optimize', () => {
 
     // TC_OPTIMIZE_006: Outstanding Principal updates after credit score change
     const beforePrincipal = await optimizePage.getOutstandingPrincipalValue();
-    await optimizePage.setCreditScore(650);
+    await optimizePage.setCreditScore(651);
     await optimizePage.clickSaveCutoff();
     await optimizePage.waitForMetricsToStabilize();
     const afterPrincipal = await optimizePage.getOutstandingPrincipalValue();
@@ -265,7 +265,7 @@ test.describe('Full user journey: Segment → Pattern → Optimize', () => {
     // TC_OPTIMIZE_007: Loan count updates after credit score change
     const beforeLoan = await optimizePage.getApprovedLoanCount();
     console.log('approved loans before credit score change:', beforeLoan);
-    await optimizePage.setCreditScore(651);
+    await optimizePage.setCreditScore(652);
     await optimizePage.waitForSaveCutoffEnabled();
     await optimizePage.clickSaveCutoff();
     await optimizePage.waitForMetricsToStabilize();

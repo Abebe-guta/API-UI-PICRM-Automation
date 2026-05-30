@@ -9,14 +9,13 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-
     runs-on: ubuntu-latest
 
     container:
       image: mcr.microsoft.com/playwright:v1.59.1-noble
 
     env:
-      BASE_URL: ${{ secrets.BASE_URL }}
+      BASE_URL:       ${{ secrets.BASE_URL }}
       LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
       LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
 
@@ -33,11 +32,28 @@ jobs:
       - name: Create .auth directory
         run: mkdir -p .auth
 
+      # FIX: removed --reporter=line from both test steps.
+      # Passing --reporter on the CLI completely overrides the reporters
+      # defined in playwright.config.js — including the html reporter
+      # that writes to playwright-report/. With only `line` active,
+      # no files are written and the artifact upload finds nothing.
+      # Removing it lets playwright.config.js run all three reporters:
+      # html → playwright-report/, json → test-results/results.json, list
       - name: Run API tests
-        run: npx playwright test --project=API --reporter=line
+        run: npx playwright test --project=API
 
       - name: Run UI tests
-        run: npx playwright test --project=UI --reporter=line
+        run: npx playwright test --project=UI
+
+      # Diagnostic step — shows exactly what was written so you can
+      # confirm paths before the artifact upload runs
+      - name: List generated report files
+        if: always()
+        run: |
+          echo "=== playwright-report ==="
+          ls -la playwright-report/ 2>/dev/null || echo "playwright-report/ not found"
+          echo "=== test-results ==="
+          ls -la test-results/ 2>/dev/null || echo "test-results/ not found"
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -45,6 +61,6 @@ jobs:
         with:
           name: playwright-output
           path: |
-            playwright-report/**
-            test-results/**
+            playwright-report/
+            test-results/
           retention-days: 30

@@ -20,8 +20,8 @@ import { SegmentPage }  from '../../pages/UI/SegmentPage.js';
 import { PatternPage }  from '../../pages/UI/PatternPage.js';
 import { OptimizePage } from '../../pages/UI/OptimizePage.js';
 
-import { SegmentAPI } from '../../api/segment.api.js';
-import { BaseAPI }    from '../../api/base.api.js';
+import { SegmentAPI } from '../../API/segment.api.js';
+import { BaseAPI }    from '../../API/base.api.js';
 
 import { buildSegmentName } from '../../utils/testData.js';
 

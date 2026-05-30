@@ -32,21 +32,13 @@ jobs:
       - name: Create .auth directory
         run: mkdir -p .auth
 
-      # FIX: removed --reporter=line from both test steps.
-      # Passing --reporter on the CLI completely overrides the reporters
-      # defined in playwright.config.js — including the html reporter
-      # that writes to playwright-report/. With only `line` active,
-      # no files are written and the artifact upload finds nothing.
-      # Removing it lets playwright.config.js run all three reporters:
-      # html → playwright-report/, json → test-results/results.json, list
       - name: Run API tests
         run: npx playwright test --project=API
 
       - name: Run UI tests
         run: npx playwright test --project=UI
 
-      # Diagnostic step — shows exactly what was written so you can
-      # confirm paths before the artifact upload runs
+      
       - name: List generated report files
         if: always()
         run: |

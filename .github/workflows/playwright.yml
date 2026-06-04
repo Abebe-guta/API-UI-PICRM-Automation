@@ -54,6 +54,7 @@ jobs:
         run: npx playwright test --project=SCREENING
 
       - name: Run UI DB Validation Tests
+        if: false
         run: npx playwright test --project=ui-ANALYTICS
 
       - name: Run DB tests

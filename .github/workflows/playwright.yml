@@ -21,6 +21,7 @@ jobs:
       BASE_URL: ${{ secrets.BASE_URL }}
       LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
       LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
+
       # =========================
       # DB CONFIG
       # =========================
@@ -44,21 +45,37 @@ jobs:
       - name: Create .auth directory
         run: mkdir -p .auth
 
+      # =========================
+      # TEST EXECUTION (isolated outputs)
+      # =========================
+
       - name: Run API tests
-        run: npx playwright test --project=API
+        run: npx playwright test --project=API --output=test-results/api
 
       - name: Run Segment Journey Tests
-        run: npx playwright test --project=JOURNEY
+        run: npx playwright test --project=JOURNEY --output=test-results/journey
 
       - name: Run Screening Feature Tests
-        run: npx playwright test --project=SCREENING
-
-      - name: Run UI DB Validation Tests
-        if: false
-        run: npx playwright test --project=ui-ANALYTICS
+        run: npx playwright test --project=SCREENING --output=test-results/screening
 
       - name: Run DB tests
-        run: npx playwright test --project=DB
+        run: npx playwright test --project=DB --output=test-results/db
+
+      # Disabled intentionally (not configured yet)
+      # - name: Run UI DB Validation Tests
+      #   run: npx playwright test --project=ANALYTICS --output=test-results/analytics
+
+      # =========================
+      # MERGE REPORTS INTO ONE
+      # =========================
+
+      - name: Merge Playwright reports
+        if: always()
+        run: npx playwright merge-reports --reporter html test-results
+
+      # =========================
+      # DEBUG OUTPUT
+      # =========================
 
       - name: List generated report files
         if: always()
@@ -67,6 +84,10 @@ jobs:
           ls -la playwright-report/ 2>/dev/null || echo "playwright-report/ not found"
           echo "=== test-results ==="
           ls -la test-results/ 2>/dev/null || echo "test-results/ not found"
+
+      # =========================
+      # ARTIFACT UPLOAD
+      # =========================
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

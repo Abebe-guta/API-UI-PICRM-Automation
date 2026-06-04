@@ -150,8 +150,8 @@ export class SegmentAPI {
       throw new Error('❌ segmentId is required');
     }
 
-    return this.baseAPI.post(
-      `/api/v1/segments/${segmentId}/delete`
+    return this.baseAPI.delete(
+      `/api/v1/segments/${segmentId}`
     );
   }
 }

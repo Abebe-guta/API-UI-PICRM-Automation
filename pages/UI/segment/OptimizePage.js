@@ -2,8 +2,8 @@
 // OptimizePage.js (STABLE + PRODUCTION READY)
 // =====================================================
 
-import { BasePage } from '../base/BasePage.js';
-import { OptimizePageLocators } from '../locators/segment/optimize.locators.js';
+import { BasePage } from '../../base/BasePage.js';
+import { OptimizePageLocators } from '../../locators/segment/optimize.locators.js';
 import { expect } from 'playwright/test';
 
 class OptimizePage extends BasePage {

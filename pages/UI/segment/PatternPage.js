@@ -2,10 +2,10 @@
 // PatternPage.js (STABLE + PRODUCTION READY)
 // =====================================================
 
-import { BasePage } from '../base/BasePage.js';
+import { BasePage } from '../../base/BasePage.js';
 
 // FIXED IMPORT (important)
-import { PatternLocators } from '../locators/segment/pattern.locators.js';
+import { PatternLocators } from '../../locators/segment/pattern.locators.js';
 
 class PatternPage extends BasePage {
 

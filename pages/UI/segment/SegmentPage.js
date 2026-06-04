@@ -2,8 +2,8 @@
 // pages/UI/SegmentPage.js
 // =============================================================
 
-import { BasePage } from '../base/BasePage';
-import { SegmentLocators } from '../locators/segment/segment.locators';
+import { BasePage } from '../../base/BasePage.js';
+import { SegmentLocators } from '../../locators/segment/segment.locators';
 
 class SegmentPage extends BasePage {
   constructor(page) {

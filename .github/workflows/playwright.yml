@@ -15,9 +15,21 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.59.1-noble
 
     env:
+      # =========================
+      # WEB CONFIG 
+      # =========================
       BASE_URL:       ${{ secrets.BASE_URL }}
       LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
       LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
+      # =========================
+      # DB CONFIG
+      # =========================
+      DB_HOST:     ${{ secrets.DB_HOST }}  
+      DB_PORT:     ${{ secrets.DB_PORT }}   
+      DB_NAME:     ${{ secrets.DB_NAME }}   
+      DB_USER:     ${{ secrets.DB_USER }}   
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }} 
+      DB_SSL:      ${{ secrets.DB_SSL }}    
 
     steps:
       - uses: actions/checkout@v4
@@ -35,9 +47,17 @@ jobs:
       - name: Run API tests
         run: npx playwright test --project=API
 
-      - name: Run UI tests
-        run: npx playwright test --project=UI
+      - name: Run Segment Journey Tests
+        run: npx playwright test --project=segment-journeys
 
+      - name: Run Screening Feature Tests
+        run: npx playwright test --project=screening-features
+
+      - name: Run UI DB Validation Tests
+        run: npx playwright test --project=ui-db-validation
+
+      - name: Run DB tests
+        run: npx playwright test --project=DB
       
       - name: List generated report files
         if: always()

@@ -41,15 +41,46 @@ export default defineConfig({
         }
       }
     },
+  {
+    name: 'SCREENING',
+    testMatch: '**/tests/ui/screening-features/**/*.spec.js',
+    use: {
+      ...devices['Desktop Chrome'],
+      headless: !!process.env.CI,
+      navigationTimeout: 45000,
+    }
+  },
+  {
+    name: 'JOURNEY',
+    testMatch: '**/tests/ui/segment-journeys/**/*.spec.js',
+    timeout: 120000,
+    use: {
+      ...devices['Desktop Chrome'],
+      headless: !!process.env.CI,
+      navigationTimeout: 45000,
+    }
+  },
+  {
+    name: 'ANALYTICS',
+    testMatch: '**/tests/ui/ui-db-validation/**/*.spec.js',
+    timeout: 180000,
+    use: {
+      ...devices['Desktop Chrome'],
+      headless: !!process.env.CI,
+      navigationTimeout: 45000,
+    }
+  },
     {
-      name: 'UI',
-      testMatch: '**/tests/ui/**/*.spec.js',
-      use: {
-        ...devices['Desktop Chrome'],
-        headless: !!process.env.CI,
-        navigationTimeout: 45000,
-      }
-    },
+     name: 'DB',
+     testMatch: '**/tests/db/**/*.spec.js',
+    use: {
+     builderConfig: {
+      numericCount:     1,
+      categoricalCount: 1,
+      metricsCount:     1,
+     }
+   }
+   },
     {
       name: 'E2E',
       testMatch: '**/tests/hybrid/**/*.spec.js',

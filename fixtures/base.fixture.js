@@ -79,6 +79,11 @@ export const test = base.extend({
     await service.dispose();
   }, { scope: 'test' }],
 
+   dbClient: [async ({}, use) => {
+     const client = {query};
+     await use(client);
+     }, { scope: 'worker' }],
+
   // New worker‑scoped shared page – avoids conflict with built‑in 'page'
   sharedPage: [async ({ browser }, use) => {
     if (!sharedPage) {

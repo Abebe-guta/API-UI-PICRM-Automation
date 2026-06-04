@@ -19,6 +19,7 @@
     "axios": "^1.15.2",
     "dotenv": "^17.4.2",
     "joi": "^18.1.2",
+    "pg": "^8.21.0",
     "playwright": "^1.59.1",
     "playwright-core": "^1.59.1",
     "undici-types": "^7.19.2"

@@ -46,7 +46,7 @@ jobs:
         run: mkdir -p .auth
 
       # =========================
-      # RUN TESTS (sequential projects)
+      # TEST EXECUTION
       # =========================
 
       - name: Run API tests
@@ -61,20 +61,20 @@ jobs:
       - name: Run DB tests
         run: npx playwright test --project=DB
 
-      # Disabled intentionally (not ready)
+      # Disabled (not ready)
       # - name: Run Analytics tests
       #   run: npx playwright test --project=ANALYTICS
 
       # =========================
-      # GENERATE SINGLE REPORT
+      # REPORT GENERATION
       # =========================
 
-      - name: Generate Playwright HTML report
+      - name: Ensure report folder exists
         if: always()
-        run: npx playwright show-report
+        run: mkdir -p playwright-report
 
       # =========================
-      # DEBUG
+      # DEBUG FILES
       # =========================
 
       - name: List report files
@@ -86,7 +86,7 @@ jobs:
           ls -la test-results/ 2>/dev/null || echo "test-results not found"
 
       # =========================
-      # ARTIFACT UPLOAD
+      # UPLOAD ARTIFACT
       # =========================
 
       - name: Upload Playwright report

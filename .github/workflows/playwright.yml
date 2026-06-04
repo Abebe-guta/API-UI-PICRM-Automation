@@ -46,44 +46,44 @@ jobs:
         run: mkdir -p .auth
 
       # =========================
-      # TEST EXECUTION (isolated outputs)
+      # RUN TESTS (sequential projects)
       # =========================
 
       - name: Run API tests
-        run: npx playwright test --project=API --output=test-results/api
+        run: npx playwright test --project=API
 
-      - name: Run Segment Journey Tests
-        run: npx playwright test --project=JOURNEY --output=test-results/journey
+      - name: Run Journey tests
+        run: npx playwright test --project=JOURNEY
 
-      - name: Run Screening Feature Tests
-        run: npx playwright test --project=SCREENING --output=test-results/screening
+      - name: Run Screening tests
+        run: npx playwright test --project=SCREENING
 
       - name: Run DB tests
-        run: npx playwright test --project=DB --output=test-results/db
+        run: npx playwright test --project=DB
 
-      # Disabled intentionally (not configured yet)
-      # - name: Run UI DB Validation Tests
-      #   run: npx playwright test --project=ANALYTICS --output=test-results/analytics
+      # Disabled intentionally (not ready)
+      # - name: Run Analytics tests
+      #   run: npx playwright test --project=ANALYTICS
 
       # =========================
-      # MERGE REPORTS INTO ONE
+      # GENERATE SINGLE REPORT
       # =========================
 
-      - name: Merge Playwright reports
+      - name: Generate Playwright HTML report
         if: always()
-        run: npx playwright merge-reports --reporter html test-results
+        run: npx playwright show-report
 
       # =========================
-      # DEBUG OUTPUT
+      # DEBUG
       # =========================
 
-      - name: List generated report files
+      - name: List report files
         if: always()
         run: |
           echo "=== playwright-report ==="
-          ls -la playwright-report/ 2>/dev/null || echo "playwright-report/ not found"
+          ls -la playwright-report/ 2>/dev/null || echo "playwright-report not found"
           echo "=== test-results ==="
-          ls -la test-results/ 2>/dev/null || echo "test-results/ not found"
+          ls -la test-results/ 2>/dev/null || echo "test-results not found"
 
       # =========================
       # ARTIFACT UPLOAD
@@ -93,8 +93,6 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-output
-          path: |
-            playwright-report/
-            test-results/
+          name: playwright-report
+          path: playwright-report/
           retention-days: 30

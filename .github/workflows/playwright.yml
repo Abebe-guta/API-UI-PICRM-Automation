@@ -47,14 +47,22 @@ jobs:
         with:
           node-version: lts/*
 
-      # INSTALL
+      # INSTALL DEPENDENCIES
       - name: Install dependencies
         run: npm ci
 
       - name: Create auth directory
         run: mkdir -p .auth
 
-      # RUN ALL PLAYWRIGHT PROJECTS
+      # INSTALL JAVA (FIX FOR ALLURE)
+      - name: Install Java 17
+        run: |
+          apt-get update
+          apt-get install -y openjdk-17-jre
+          java -version
+          echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))" >> $GITHUB_ENV
+
+      # RUN TESTS
       - name: Run Playwright Tests
         run: npx playwright test
 
@@ -62,11 +70,10 @@ jobs:
       - name: Generate Allure Report
         if: always()
         run: |
-          npx allure generate allure-results \
-            --clean \
-            -o allure-report
+          java -version
+          npx allure generate allure-results --clean -o allure-report
 
-      # DEBUG
+      # DEBUG FILES
       - name: List Report Files
         if: always()
         run: |
@@ -91,7 +98,7 @@ jobs:
           path: allure-report/
           retention-days: 30
 
-      # UPLOAD PLAYWRIGHT HTML REPORT
+      # UPLOAD PLAYWRIGHT REPORT
       - name: Upload Playwright Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -100,7 +107,7 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      # UPLOAD RAW TEST OUTPUTS
+      # UPLOAD TEST RESULTS
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4

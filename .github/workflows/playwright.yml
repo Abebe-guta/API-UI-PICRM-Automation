@@ -3,6 +3,7 @@ name: Playwright Tests
 on:
   push:
     branches: [main, master]
+
   pull_request:
     branches: [main, master]
 
@@ -32,101 +33,66 @@ jobs:
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_SSL: ${{ secrets.DB_SSL }}
 
-    steps:
-      - uses: actions/checkout@v4
+      # =========================
+      # SCREENING DATA
+      # =========================
+      SCREENING_CUSTOMER_ID: ${{ secrets.SCREENING_CUSTOMER_ID }}
 
-      - uses: actions/setup-node@v4
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: lts/*
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Create .auth directory
+      - name: Create auth directory
         run: mkdir -p .auth
 
-      # =====================================
-      # CHANGE: folder for blob reports
-      # =====================================
-      - name: Create blob report folder
-        run: mkdir -p blob-report
-
       # =========================
-      # TEST EXECUTION
+      # RUN ALL PROJECTS
       # =========================
 
-      # =====================================
-      # CHANGE: output separate blob reports
-      # =====================================
-
-      - name: Run API tests
-        run: |
-          npx playwright test --project=API \
-          --reporter=blob \
-          --output=test-results/api
-
-      - name: Run Journey tests
-        run: |
-          npx playwright test --project=JOURNEY \
-          --reporter=blob \
-          --output=test-results/journey
-
-      - name: Run Screening tests
-        run: |
-          npx playwright test --project=SCREENING \
-          --reporter=blob \
-          --output=test-results/screening
-
-      - name: Run DB tests
-        run: |
-          npx playwright test --project=DB \
-          --reporter=blob \
-          --output=test-results/db
-
-      # Disabled (not ready)
-      # - name: Run Analytics tests
-      #   run: |
-      #     npx playwright test --project=ANALYTICS \
-      #     --reporter=blob \
-      #     --output=test-results/analytics
-
-      # =====================================
-      # CHANGE: Merge reports
-      # =====================================
-      - name: Merge Playwright reports
-        if: always()
-        run: |
-          npx playwright merge-reports \
-          --reporter html \
-          blob-report
+      - name: Run Playwright Tests
+        run: npx playwright test
 
       # =========================
-      # DEBUG FILES
+      # DEBUG
       # =========================
 
-      - name: List report files
+      - name: List generated files
         if: always()
         run: |
           echo "=== playwright-report ==="
-          ls -la playwright-report/ 2>/dev/null || echo "playwright-report not found"
-
-          echo "=== blob-report ==="
-          ls -la blob-report/ 2>/dev/null || echo "blob-report not found"
+          ls -la playwright-report/ || true
 
           echo "=== test-results ==="
-          ls -la test-results/ 2>/dev/null || echo "test-results not found"
+          ls -la test-results/ || true
 
       # =========================
-      # UPLOAD ARTIFACT
+      # HTML REPORT
       # =========================
 
-      - name: Upload Playwright report
+      - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
-          path: |
-            playwright-report/
-            blob-report/
-            test-results/
+          name: playwright-html-report
+          path: playwright-report/
+          retention-days: 30
+
+      # =========================
+      # RAW TEST OUTPUTS
+      # =========================
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-test-results
+          path: test-results/
           retention-days: 30

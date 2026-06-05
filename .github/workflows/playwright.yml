@@ -2,30 +2,30 @@ name: Playwright Tests
 
 on:
   push:
-    branches: [main, master]
+    branches:
+      - main
+      - master
 
   pull_request:
-    branches: [main, master]
+    branches:
+      - main
+      - master
 
 jobs:
   test:
-    timeout-minutes: 60
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     container:
       image: mcr.microsoft.com/playwright:v1.59.1-noble
 
     env:
-      # =========================
       # WEB CONFIG
-      # =========================
       BASE_URL: ${{ secrets.BASE_URL }}
       LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
       LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
 
-      # =========================
       # DB CONFIG
-      # =========================
       DB_HOST: ${{ secrets.DB_HOST }}
       DB_PORT: ${{ secrets.DB_PORT }}
       DB_NAME: ${{ secrets.DB_NAME }}
@@ -33,65 +33,77 @@ jobs:
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_SSL: ${{ secrets.DB_SSL }}
 
-      # =========================
       # SCREENING DATA
-      # =========================
       SCREENING_CUSTOMER_ID: ${{ secrets.SCREENING_CUSTOMER_ID }}
 
     steps:
+      # CHECKOUT
       - name: Checkout source
         uses: actions/checkout@v4
 
+      # NODE
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
 
+      # INSTALL
       - name: Install dependencies
         run: npm ci
 
       - name: Create auth directory
         run: mkdir -p .auth
 
-      # =========================
-      # RUN ALL PROJECTS
-      # =========================
-
+      # RUN ALL PLAYWRIGHT PROJECTS
       - name: Run Playwright Tests
         run: npx playwright test
 
-      # =========================
-      # DEBUG
-      # =========================
-
-      - name: List generated files
+      # GENERATE ALLURE REPORT
+      - name: Generate Allure Report
         if: always()
         run: |
+          npx allure generate allure-results \
+            --clean \
+            -o allure-report
+
+      # DEBUG
+      - name: List Report Files
+        if: always()
+        run: |
+          echo "=== allure-results ==="
+          ls -la allure-results/ || true
+
+          echo "=== allure-report ==="
+          ls -la allure-report/ || true
+
           echo "=== playwright-report ==="
           ls -la playwright-report/ || true
 
           echo "=== test-results ==="
           ls -la test-results/ || true
 
-      # =========================
-      # HTML REPORT
-      # =========================
-
-      - name: Upload HTML Report
-        uses: actions/upload-artifact@v4
+      # UPLOAD ALLURE REPORT
+      - name: Upload Allure Report
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: playwright-html-report
+          name: allure-report
+          path: allure-report/
+          retention-days: 30
+
+      # UPLOAD PLAYWRIGHT HTML REPORT
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
           path: playwright-report/
           retention-days: 30
 
-      # =========================
-      # RAW TEST OUTPUTS
-      # =========================
-
+      # UPLOAD RAW TEST OUTPUTS
       - name: Upload Test Results
-        uses: actions/upload-artifact@v4
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-test-results
           path: test-results/

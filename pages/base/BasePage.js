@@ -5,10 +5,9 @@
 //   Used by all Page Objects
 // =============================================================
 
-import { expect } from '@playwright/test';
+import { expect } from "@playwright/test";
 
 export class BasePage {
-
   constructor(page) {
     this.page = page;
   }
@@ -26,11 +25,10 @@ export class BasePage {
   // =====================================================
 
   async goto(url, options = {}) {
-
     await this.page.goto(url, {
-      waitUntil: 'networkidle',
+      waitUntil: "networkidle",
       timeout: 30000,
-      ...options
+      ...options,
     });
 
     await this.waitForPageReady();
@@ -41,24 +39,15 @@ export class BasePage {
   // =====================================================
 
   async waitForPageReady() {
-
-    await this.page.waitForLoadState(
-      'networkidle'
-    );
+    await this.page.waitForLoadState("networkidle");
   }
 
   async waitForNetworkIdle() {
-
-    await this.page.waitForLoadState(
-      'networkidle'
-    );
+    await this.page.waitForLoadState("networkidle");
   }
 
   async waitForDOMReady() {
-
-    await this.page.waitForLoadState(
-      'domcontentloaded'
-    );
+    await this.page.waitForLoadState("domcontentloaded");
   }
 
   // =====================================================
@@ -66,12 +55,10 @@ export class BasePage {
   // =====================================================
 
   async verifyAuthenticated() {
-
-    if (this.page.url().includes('/login')) {
-
+    if (this.page.url().includes("/login")) {
       throw new Error(
         `❌ Authentication failed.\n` +
-        `Redirected to login page:\n${this.page.url()}`
+          `Redirected to login page:\n${this.page.url()}`,
       );
     }
   }
@@ -81,60 +68,66 @@ export class BasePage {
   // =====================================================
 
   async click(selector, options = {}) {
-
     const element = this.locator(selector);
 
     await element.waitFor({
-      state: 'visible',
-      timeout: 30000
+      state: "visible",
+      timeout: 30000,
     });
 
     await element.click(options);
   }
 
   async fill(selector, value, options = {}) {
-
     const element = this.locator(selector);
 
     await element.waitFor({
-      state: 'visible',
-      timeout: 30000
+      state: "visible",
+      timeout: 30000,
     });
 
     await element.fill(value, options);
   }
+  async fillAndTab(selector, value) {
+    const element = this.page.locator(selector);
+
+    await element.waitFor({
+      state: "visible",
+      timeout: 30000,
+    });
+
+    await element.fill(String(value));
+    await element.press("Tab");
+  }
 
   async clear(selector) {
-
     const element = this.locator(selector);
 
     await element.waitFor({
-      state: 'visible',
-      timeout: 30000
+      state: "visible",
+      timeout: 30000,
     });
 
     await element.clear();
   }
 
   async press(selector, key) {
-
     const element = this.locator(selector);
 
     await element.waitFor({
-      state: 'visible',
-      timeout: 30000
+      state: "visible",
+      timeout: 30000,
     });
 
     await element.press(key);
   }
 
   async hover(selector) {
-
     const element = this.locator(selector);
 
     await element.waitFor({
-      state: 'visible',
-      timeout: 30000
+      state: "visible",
+      timeout: 30000,
     });
 
     await element.hover();
@@ -145,40 +138,33 @@ export class BasePage {
   // =====================================================
 
   async getText(selector) {
-
     const element = this.locator(selector);
 
     await element.waitFor({
-      state: 'visible',
-      timeout: 30000
+      state: "visible",
+      timeout: 30000,
     });
 
-    return (
-      await element.innerText()
-    ).trim();
+    return (await element.innerText()).trim();
   }
 
   async getTextContent(selector) {
-
     const element = this.locator(selector);
 
     await element.waitFor({
-      state: 'visible',
-      timeout: 30000
+      state: "visible",
+      timeout: 30000,
     });
 
-    return (
-      await element.textContent()
-    )?.trim();
+    return (await element.textContent())?.trim();
   }
 
   async getAttribute(selector, attribute) {
-
     const element = this.locator(selector);
 
     await element.waitFor({
-      state: 'attached',
-      timeout: 30000
+      state: "attached",
+      timeout: 30000,
     });
 
     return await element.getAttribute(attribute);
@@ -188,41 +174,34 @@ export class BasePage {
   // VISIBILITY / STATE
   // =====================================================
 
- async isVisible(selector) {
-  const locator = typeof selector === 'string' 
-    ? this.page.locator(selector) 
-    : selector;
-  return await locator.isVisible();
- }
+  async isVisible(selector) {
+    const locator =
+      typeof selector === "string" ? this.page.locator(selector) : selector;
+    return await locator.isVisible();
+  }
 
- async isHidden(selector) {
-  const locator = typeof selector === 'string'
-    ? this.page.locator(selector)
-    : selector;
-  return await locator.isHidden();
- }
+  async isHidden(selector) {
+    const locator =
+      typeof selector === "string" ? this.page.locator(selector) : selector;
+    return await locator.isHidden();
+  }
 
- async isEnabled(selector) {
-  const locator = typeof selector === 'string'
-    ? this.page.locator(selector)
-    : selector;
-  return await locator.isEnabled();
-}
+  async isEnabled(selector) {
+    const locator =
+      typeof selector === "string" ? this.page.locator(selector) : selector;
+    return await locator.isEnabled();
+  }
 
   // =====================================================
   // DROPDOWNS
   // =====================================================
 
-  async selectDropdown(
-    selector,
-    value
-  ) {
-
+  async selectDropdown(selector, value) {
     const dropdown = this.locator(selector);
 
     await dropdown.waitFor({
-      state: 'visible',
-      timeout: 30000
+      state: "visible",
+      timeout: 30000,
     });
 
     await dropdown.selectOption(String(value));
@@ -235,9 +214,7 @@ export class BasePage {
   // =====================================================
 
   async getCount(selector) {
-
-    return await this.locator(selector)
-      .count();
+    return await this.locator(selector).count();
   }
 
   // =====================================================
@@ -245,20 +222,17 @@ export class BasePage {
   // =====================================================
 
   async getRowByCellText(rowSelector, text) {
-
     return this.page.locator(rowSelector).filter({
-        has: this.page.locator(`td:text-is("${text}")`),
-      });
+      has: this.page.locator(`td:text-is("${text}")`),
+    });
   }
-  async clickRowAction({rowSelector,rowText, actionSelector,}) 
-  {
-    const row =
-      await this.getRowByCellText(rowSelector,rowText);
+  async clickRowAction({ rowSelector, rowText, actionSelector }) {
+    const row = await this.getRowByCellText(rowSelector, rowText);
 
     await row.locator(actionSelector).waitFor({
-        state: 'visible',
-        timeout: 30000
-      });
+      state: "visible",
+      timeout: 30000,
+    });
 
     await row.locator(actionSelector).click();
     await this.waitForNetworkIdle();
@@ -268,35 +242,23 @@ export class BasePage {
   // WAIT HELPERS
   // =====================================================
 
-  async waitForVisible(
-    selector,
-    timeout = 30000
-  ) {
-
-    await this.locator(selector)
-      .waitFor({
-        state: 'visible',
-        timeout
-      });
+  async waitForVisible(selector, timeout = 30000) {
+    await this.locator(selector).waitFor({
+      state: "visible",
+      timeout,
+    });
   }
 
-  async waitForHidden(
-    selector,
-    timeout = 30000
-  ) {
-
-    await this.locator(selector)
-      .waitFor({
-        state: 'hidden',
-        timeout
-      });
+  async waitForHidden(selector, timeout = 30000) {
+    await this.locator(selector).waitFor({
+      state: "hidden",
+      timeout,
+    });
   }
 
-  async waitForText(selector,expected,timeout = 30000) 
-  {
-    await expect(this.locator(selector)).toContainText(expected, 
-      {
-      timeout
+  async waitForText(selector, expected, timeout = 30000) {
+    await expect(this.locator(selector)).toContainText(expected, {
+      timeout,
     });
   }
 
@@ -304,16 +266,14 @@ export class BasePage {
   // DEBUGGING
   // =====================================================
 
-  async screenshot(name = 'debug') {
-
+  async screenshot(name = "debug") {
     await this.page.screenshot({
       path: `.artifacts/${name}.png`,
-      fullPage: true
+      fullPage: true,
     });
   }
 
   async debugPageState() {
-
     if (!process.env.DEBUG) {
       return;
     }
@@ -321,9 +281,52 @@ export class BasePage {
     console.log({
       url: this.page.url(),
       title: await this.page.title(),
-      hasToken: await this.page.evaluate(
-        () => !!localStorage.getItem('token')
-      )
+      hasToken: await this.page.evaluate(() => !!localStorage.getItem("token")),
     });
+  }
+  // =====================================================
+  // FORM RESET
+  // =====================================================
+  async resetForm(fieldSelectors = [], anchorSelector = null) {
+    if (!this.page || this.page.isClosed?.()) return;
+
+    // Clear all fields in parallel
+    await Promise.all(
+      fieldSelectors.map((selector) => this.fill(selector, "")),
+    );
+
+    // Wait for anchor element to disappear if provided
+    if (anchorSelector) {
+      await this.page
+        .locator(anchorSelector)
+        .waitFor({ state: "hidden", timeout: 5000 })
+        .catch(() => {});
+    }
+  }
+  // =====================================================
+  // SAFE READ
+  // ─────────────────────────────────────────────────────
+  // Like getText but returns null instead of throwing
+  // when the element is absent. Use for optional fields
+  // that may not be present in all UI states.
+  // =====================================================
+  async readText(selector) {
+    return this.page
+      .locator(selector)
+      .first()
+      .innerText()
+      .catch(() => null);
+  }
+  async submitAndWaitForResponse(actionFn, urlFragment, timeout = 60000) {
+    const [response] = await Promise.all([
+      this.page.waitForResponse(
+        (res) =>
+          res.url().includes(urlFragment) && res.request().method() === "POST",
+        { timeout },
+      ),
+      actionFn(),
+    ]);
+
+    return response;
   }
 }

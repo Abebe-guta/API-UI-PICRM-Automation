@@ -1,0 +1,58 @@
+
+🔐 [Worker] Initialising shared page – token injection once
+AFTER AUTH FLOW (worker): http://3.216.34.218:9192/picr/dashboard/portfolio-overview
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 449,
+  requestId: '32c88317-13e6-4a59-b738-78a42a6ab282',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 327,
+  requestId: 'aa9f36b8-ee90-4835-80c8-ac9e683f443a',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+🔐 baseAPI token length: 2195
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'outstanding_penalty' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'application_status' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 1009,
+  requestId: 'c58b6aa0-bc4d-4384-9ce5-44c18908bc6c',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}

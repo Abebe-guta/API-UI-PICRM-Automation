@@ -1,0 +1,54 @@
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 397,
+  requestId: 'cd245bad-2fbd-40e5-8d59-530b4fa117c3',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 428,
+  requestId: '13beabb9-1eec-4390-95e4-4f513bd6dee4',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'interest_collected' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'line_of_business' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 787,
+  requestId: '00a80a7e-0df9-4c69-80da-946128120a81',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}

@@ -1,0 +1,146 @@
+
+🔐 [Worker] Initialising shared page – token injection once
+AFTER AUTH FLOW (worker): http://3.216.34.218:9192/picr/dashboard/portfolio-overview
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 655,
+  requestId: 'f193e624-b8ec-4a6d-9046-a8ab7c90463e',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 326,
+  requestId: '4194a2e8-dfb3-4788-b594-d066c67ad0f1',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+🔐 baseAPI token length: 2195
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'outstanding_interest' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'marital_status' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 1211,
+  requestId: '4878bac1-c402-477f-89f2-a09860a3480e',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}
+🧪 Selected Attribute: {
+  column_name: 'marital_status',
+  mode: 'distinct_values',
+  selected_values: [ 'DIVORCED', 'MARRIED', 'UNMARRIED', 'WIDOWED' ],
+  numeric_bins: undefined
+}
+🧪 Selected Attribute: {
+  column_name: 'outstanding_interest',
+  mode: 'bins',
+  selected_values: undefined,
+  numeric_bins: [
+    { min: 0, max: 33, label: '0-33' },
+    { min: 34, max: 66, label: '34-66' },
+    { min: 67, max: 100, label: '67-100' }
+  ]
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments',
+  status: 200,
+  duration: 668,
+  requestId: '1010e189-eb99-44ad-99d9-e26ff98b0771',
+  attempt: 0
+}
+✅ Segment created — id: 733, name: Seg_loan_table_coop_796471
+✅ Validation message: Please enter either Segment ID or Segment Name
+🔎 Screening API response: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 733,
+  "segment_name": "Seg_loan_table_coop_796471",
+  "segment_row_id": 284801,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}
+✅ Search by ID — state: results
+🔎 Screening API response: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 733,
+  "segment_name": "Seg_loan_table_coop_796471",
+  "segment_row_id": 284801,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}
+✅ Search by name — state: results
+🔎 Screening API response: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 733,
+  "segment_name": "Seg_loan_table_coop_796471",
+  "segment_row_id": 284801,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}
+invalidResult: {
+  "state": "results",
+  "data": {
+    "success": true,
+    "message": "Screening completed successfully",
+    "customer_id": "68372393f1cd711a709c7a7c",
+    "in_segment": true,
+    "segment_id": 733,
+    "segment_name": "Seg_loan_table_coop_796471",
+    "segment_row_id": 284801,
+    "risk_score": 62,
+    "risk_tier": "medium",
+    "segment_status": "active",
+    "credit_score_cutoff": null,
+    "error": null
+  }
+}

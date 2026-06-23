@@ -1,0 +1,106 @@
+
+🔐 [Worker] Initialising shared page – token injection once
+AFTER AUTH FLOW (worker): http://3.216.34.218:9192/picr/dashboard/portfolio-overview
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 688,
+  requestId: '3355ce7c-2717-457d-8300-173123981b5c',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 367,
+  requestId: '4ee429b8-875a-4db6-b067-33a509086498',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+🔐 baseAPI token length: 2195
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'total_collected' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'arrears_risk_category' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 950,
+  requestId: '264a4692-f12a-4f71-a8b2-7cc4f7200e0c',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}
+🧪 Selected Attribute: {
+  column_name: 'arrears_risk_category',
+  mode: 'distinct_values',
+  selected_values: [
+    'Critical Risk',
+    'Current',
+    'High Risk',
+    'Low Risk',
+    'Medium Risk'
+  ],
+  numeric_bins: undefined
+}
+🧪 Selected Attribute: {
+  column_name: 'total_collected',
+  mode: 'bins',
+  selected_values: undefined,
+  numeric_bins: [
+    { min: 0, max: 25, label: '0-25' },
+    { min: 26, max: 50, label: '26-50' },
+    { min: 51, max: 75, label: '51-75' },
+    { min: 76, max: 100, label: '76-100' }
+  ]
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments',
+  status: 200,
+  duration: 693,
+  requestId: '8a56bee7-f45b-4a12-8317-b994f020b7e1',
+  attempt: 0
+}
+✅ Segment created — id: 719
+✅ Validation message: Please enter either Segment ID or Segment Name
+🔎 Screening API response: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 719,
+  "segment_name": "Seg_loan_table_coop_774359",
+  "segment_row_id": 284673,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}

@@ -1,11 +1,11 @@
 function isValidString(value) {
-  return typeof value === 'string' && value.trim().length > 0;
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function isValidId(value) {
   return (
-    (typeof value === 'string' && value.trim().length > 0) ||
-    (typeof value === 'number' && !isNaN(value))
+    (typeof value === "string" && value.trim().length > 0) ||
+    (typeof value === "number" && !isNaN(value))
   );
 }
 
@@ -17,19 +17,18 @@ function isValidDate(value) {
 // Validate Segment List (GET /segments)
 // -----------------------------
 export function validateSegmentListResponse(data) {
-
   if (!Array.isArray(data)) {
-    throw new Error('segments response must be an array');
+    throw new Error("segments response must be an array");
   }
 
   if (data.length === 0) {
-    console.warn('⚠️ Segments list is empty');
+    console.warn("⚠️ Segments list is empty");
   }
 
   const ids = new Set();
 
   data.forEach((segment, index) => {
-    if (!segment || typeof segment !== 'object') {
+    if (!segment || typeof segment !== "object") {
       throw new Error(`❌ Segment at index ${index} is not an object`);
     }
 
@@ -53,7 +52,6 @@ export function validateSegmentListResponse(data) {
 
   // =========================================================
   // return data
-  // This ensures getSegments() downstream logic works
   // =========================================================
   return data;
 }
@@ -62,9 +60,8 @@ export function validateSegmentListResponse(data) {
 // Validate Create Segment Response
 // -----------------------------
 export function validateCreateSegmentResponse(data) {
-
-  if (!data || typeof data !== 'object') {
-    throw new Error('❌ Create Segment response must be an object');
+  if (!data || typeof data !== "object") {
+    throw new Error("❌ Create Segment response must be an object");
   }
 
   // backend may return:
@@ -73,7 +70,7 @@ export function validateCreateSegmentResponse(data) {
 
   if (!isValidId(record.id)) {
     throw new Error(
-      `❌ Create segment response missing valid id: ${JSON.stringify(data)}`
+      `❌ Create segment response missing valid id: ${JSON.stringify(data)}`,
     );
   }
 

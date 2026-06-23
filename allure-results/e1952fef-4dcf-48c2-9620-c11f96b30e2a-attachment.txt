@@ -1,0 +1,11 @@
+❌ API ERROR BODY: {
+  "detail": "Failed to compute segment rows: Database connection is unhealthy"
+}
+{
+  type: 'API_RETRY',
+  attempt: 1,
+  context: 'POST /api/v1/segments',
+  delay: 200,
+  error: 'API POST /api/v1/segments failed with status 500',
+  requestId: 'a19a9740-f902-4d25-876d-7f38223f6dc3'
+}

@@ -1,0 +1,81 @@
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 516,
+  requestId: '597475d4-5785-4639-9fdd-b659b1235776',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 254,
+  requestId: '023aaca2-da03-47f4-b747-09610249a211',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+🔐 baseAPI token length: 2195
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'annual_income' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'customer_city' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 1188,
+  requestId: '3a076658-5922-49d3-a6c8-40f8d7861963',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}
+🧪 Selected Attribute: {
+  column_name: 'annual_income',
+  mode: 'bins',
+  selected_values: undefined,
+  numeric_bins: [
+    { min: 0, max: 25, label: '0-25' },
+    { min: 26, max: 50, label: '26-50' },
+    { min: 51, max: 75, label: '51-75' },
+    { min: 76, max: 100, label: '76-100' }
+  ]
+}
+🧪 Selected Attribute: {
+  column_name: 'customer_city',
+  mode: 'distinct_values',
+  selected_values: [ 'AREKA', 'Adama', 'Asgori 01', 'BALE ROBE', 'Bale gasara' ],
+  numeric_bins: undefined
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/preview',
+  status: 200,
+  duration: 598,
+  requestId: '509aa151-ece1-401c-8997-ea99ff49e992',
+  attempt: 0
+}

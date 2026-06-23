@@ -36,26 +36,44 @@ export const ScreeningLocators = {
 
   // =========================
   // RESULTS SECTION
+  // ─────────────────────────────────────────────────────────────
+  // DOM structure per field:
+  //   <div class="space-y-2">
+  //     <label>Field Name</label>
+  //     <p>value</p>                    ← most fields
+  //   </div>
+  //   <div class="space-y-2">
+  //     <label>Pattern Status</label>
+  //     <div><span>Active</span></div>  ← extra wrapper div
+  //   </div>
+  //
+  // FIX 1: root anchored on h2 — covers the whole card, not one field
+  // FIX 2: :has-text() not :text() — correct Playwright pseudo-class
+  // FIX 3: scoped to div.space-y-2 wrapper then query child —
+  //         survives extra wrapper elements, no direct child > needed
+  // FIX 4: statusText anchored inside results card — no loose >> chain
   // =========================
   results: {
-    root: 'div:has(label:text("Customer ID"))',
+    // Anchor for the whole results card
+    root: 'h2:has-text("Screening Results")',
 
-    customerId: 'div:has(label:text("Customer ID")) > p',
+    // Status span anchored inside the results header row
+    statusText: 'h2:has-text("Screening Results") ~ div span.font-medium',
 
-    segmentId: 'div:has(label:text("Segment ID")) > p',
+    // Field values — scoped to their div.space-y-2 wrapper
+    customerId: 'div.space-y-2:has(label:has-text("Customer ID")) p',
+    segmentId: 'div.space-y-2:has(label:has-text("Segment ID")) p',
+    segmentName: 'div.space-y-2:has(label:has-text("Segment Name")) p',
+    segmentRowId: 'div.space-y-2:has(label:has-text("Segment Row ID")) p',
 
-    segmentName: 'div:has(label:text("Segment Name")) > p',
+    // Pattern Status: <span> badge in-segment, <p> "Not available" otherwise
+    patternStatus:
+      'div.space-y-2:has(label:has-text("Pattern Status")) :is(span.rounded-full, p)',
 
-    segmentRowId: 'div:has(label:text("Segment Row ID")) > p',
+    riskScore: 'div.space-y-2:has(label:has-text("Risk Score")) p',
+    riskTier: 'div.space-y-2:has(label:has-text("Risk Tier")) p',
 
-    riskScore: 'div:has(label:text("Risk Score")) > p',
-
-    riskTier: 'div:has(label:text("Risk Tier")) > p',
-
-    patternStatus: 'div:has(label:text("Pattern Status")) span',
-
-    statusText: "div.flex.items-center.gap-2 >> span",
-
+    // Footer info banner
     footerMessage: "div.bg-blue-50 p",
   },
 };

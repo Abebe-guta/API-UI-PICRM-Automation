@@ -1,0 +1,136 @@
+
+🔐 [Worker] Initialising shared page – token injection once
+AFTER AUTH FLOW (worker): http://3.216.34.218:9192/picr/dashboard/portfolio-overview
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 641,
+  requestId: '679d035d-4d3c-4565-87be-569c29cc5064',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 1084,
+  requestId: 'a560582f-1fb6-4396-8729-25e1ddd21db0',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+🔐 baseAPI token length: 2195
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'approved_amount' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'business_sector' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 478,
+  requestId: '78b605fd-c585-40fc-ac65-0e8613733b8a',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}
+🧪 Selected Attribute: {
+  column_name: 'approved_amount',
+  mode: 'bins',
+  selected_values: undefined,
+  numeric_bins: [
+    { min: 0, max: 33, label: '0-33' },
+    { min: 34, max: 66, label: '34-66' },
+    { min: 67, max: 100, label: '67-100' }
+  ]
+}
+🧪 Selected Attribute: {
+  column_name: 'business_sector',
+  mode: 'distinct_values',
+  selected_values: [
+    'AGRICULTURE',
+    'BUILDING_AND_CONSTRUCTION',
+    'BUILDING_AND_CONTRACTION',
+    'DOMESTIC_TRADE_SERVICE',
+    'MANUFACTURING'
+  ],
+  numeric_bins: undefined
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments',
+  status: 200,
+  duration: 436,
+  requestId: 'ce346798-22fa-42f1-adcd-14bedd8fd133',
+  attempt: 0
+}
+✅ Segment created — id: 715
+✅ Expanded sub‑menu
+✅ Validation message: Please enter either Segment ID or Segment Name
+🔎 SCREENING API RESPONSE: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 715,
+  "segment_name": "Seg_loan_table_coop_922142",
+  "segment_row_id": 284649,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}
+✅ Search by ID — results
+🔎 SCREENING API RESPONSE: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 715,
+  "segment_name": "Seg_loan_table_coop_922142",
+  "segment_row_id": 284649,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}
+✅ Search by name — results
+🔎 SCREENING API RESPONSE: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 715,
+  "segment_name": "Seg_loan_table_coop_922142",
+  "segment_row_id": 284649,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}

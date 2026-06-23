@@ -8,7 +8,7 @@ import { SegmentLocators } from '../../locators/segment/segment.locators';
 class SegmentPage extends BasePage {
   constructor(page) {
     super(page);
-    this.locators = SegmentLocators;
+    this.locators = SegmentLocators; 
     this.url = '/picr/segment-management';
   }
 

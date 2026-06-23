@@ -1,0 +1,155 @@
+
+🔐 [Worker] Initialising shared page – token injection once
+AFTER AUTH FLOW (worker): http://3.216.34.218:9192/picr/dashboard/portfolio-overview
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 628,
+  requestId: '2b563b42-cba9-4205-8b22-91fdcb365640',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 234,
+  requestId: 'f2aea624-b9c9-49fd-a576-ef089cff6b64',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+🔐 baseAPI token length: 2195
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'principal_collected' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'customer_city' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 1194,
+  requestId: '4db237a5-0c52-4615-893e-8ab7e40e6217',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}
+🧪 Selected Attribute: {
+  column_name: 'customer_city',
+  mode: 'distinct_values',
+  selected_values: [ 'AREKA', 'Adama', 'Asgori 01', 'BALE ROBE', 'Bale gasara' ],
+  numeric_bins: undefined
+}
+🧪 Selected Attribute: {
+  column_name: 'principal_collected',
+  mode: 'bins',
+  selected_values: undefined,
+  numeric_bins: [
+    { min: 0, max: 25, label: '0-25' },
+    { min: 26, max: 50, label: '26-50' },
+    { min: 51, max: 75, label: '51-75' },
+    { min: 76, max: 100, label: '76-100' }
+  ]
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments',
+  status: 200,
+  duration: 1006,
+  requestId: 'd884603b-61ea-44e4-8ddd-5404b92358d6',
+  attempt: 0
+}
+created segment name: {
+  id: 744,
+  name: 'Seg_loan_table_coop_404219',
+  description: '',
+  config: {
+    attributes: [ [Object], [Object] ],
+    table_name: 'loan_table_coop',
+    target_metrics: [ 'total_installement' ],
+    derived_columns: null
+  },
+  status: 'active',
+  analysis_result: null,
+  created_by: 'admin',
+  created_at: '2026-06-23T09:53:25.302354',
+  updated_at: '2026-06-23T09:53:25.302354'
+}
+✅ [Fixture] Segment ready — id: 744, name: Seg_loan_table_coop_404219
+✅ Using segment — id: 744, name: Seg_loan_table_coop_404219
+✅ Validation message: Please enter either Segment ID or Segment Name
+🔎 Screening API response: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": false,
+  "segment_id": 744,
+  "segment_name": "Seg_loan_table_coop_404219",
+  "segment_row_id": null,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": null,
+  "credit_score_cutoff": null,
+  "error": null
+}
+✅ Search by ID — state: not-in-segment
+🔎 Screening API response: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": false,
+  "segment_id": 744,
+  "segment_name": "Seg_loan_table_coop_404219",
+  "segment_row_id": null,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": null,
+  "credit_score_cutoff": null,
+  "error": null
+}
+✅ Search by name — state: not-in-segment
+🔎 Screening API response: {
+  "detail": "Segment not found"
+}
+invalidResult: {
+  "state": "error",
+  "message": "Segment not found",
+  "data": {
+    "detail": "Segment not found"
+  }
+}
+✅ Invalid segment check — state: error
+✅ Customer screening journey completed
+{
+  type: 'API_CALL',
+  method: 'DELETE',
+  url: '/api/v1/segments/744',
+  status: 200,
+  duration: 239,
+  requestId: 'd6074870-e140-4e12-b6e2-883c609ab6da',
+  attempt: 0
+}
+🧹 [Fixture] Segment cleaned up — id: 744

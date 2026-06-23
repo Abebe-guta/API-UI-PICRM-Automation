@@ -1,17 +1,19 @@
 import { ScreeningLocators } from "../../locators/screening/ScreeningLocators.js";
 import { BasePage } from "../../base/BasePage.js";
+import { ScreeningResponseHandler } from "./ScreeningResponseHandler.js";
 
 class ScreeningPage extends BasePage {
   constructor(page) {
     super(page);
     this.locators = ScreeningLocators;
     this.url = "/picr/screening";
-    this.searchTriggered = false;
+    this.responseHandler = new ScreeningResponseHandler(page);
   }
 
-  // ===============================
+  // =====================================================
   // NAVIGATION
-  // ===============================
+  // =====================================================
+
   async goto() {
     const parentButton = this.page.locator('button:has-text("Screening")');
     await parentButton.waitFor({ state: "visible", timeout: 30000 });
@@ -22,7 +24,7 @@ class ScreeningPage extends BasePage {
     }
 
     const screeningLink = this.page.locator('a[href="/picr/screening"]');
-    await screeningLink.waitFor({ state: "visible", timeout: 30000 });
+    await screeningLink.waitFor({ state: "visible", timeout: 10000 });
 
     await Promise.all([
       this.page.waitForURL("**/screening", { timeout: 60000 }),
@@ -33,187 +35,112 @@ class ScreeningPage extends BasePage {
   }
 
   async waitForPageLoaded() {
-    await this.page
-      .locator(this.locators.headers.title)
-      .waitFor({ state: "visible", timeout: 60000 });
+    await this.waitForVisible(this.locators.headers.title, 60000);
   }
 
   async getPageTitle() {
     return await this.getText(this.locators.headers.title);
   }
 
-  // ===============================
+  // =====================================================
   // FORM ACTIONS
-  // ===============================
+  // =====================================================
+
   async fillCustomerId(customerId) {
-    await this.page
-      .locator(this.locators.inputs.customerId)
-      .fill(String(customerId));
+    await this.fill(this.locators.inputs.customerId, String(customerId));
   }
 
   async fillSegmentId(segmentId) {
-    const el = this.page.locator(this.locators.inputs.segmentId);
-    await el.fill(String(segmentId));
-    await el.press("Tab");
+    await this.fillAndTab(this.locators.inputs.segmentId, segmentId);
   }
 
   async fillSegmentName(segmentName) {
-    const el = this.page.locator(this.locators.inputs.segmentName);
-    await el.fill(String(segmentName));
-    await el.press("Tab");
+    await this.fillAndTab(this.locators.inputs.segmentName, segmentName);
   }
 
   async submitSearch() {
-    this.searchTriggered = true;
-    await this.page.locator(this.locators.actions.searchBtn).click();
+    await this.click(this.locators.actions.searchBtn);
   }
 
-  // ===============================
-  // RESET
-  // ===============================
   async resetFormState() {
-    if (!this.page || this.page.isClosed?.()) return;
-
-    await this.page.locator(this.locators.inputs.customerId).fill("");
-    await this.page.locator(this.locators.inputs.segmentId).fill("");
-    await this.page.locator(this.locators.inputs.segmentName).fill("");
-    await this.page.locator(this.locators.inputs.customerId).press("Tab");
-    // reset state
-    this.searchTriggered = false;
+    await this.resetForm(
+      [
+        this.locators.inputs.customerId,
+        this.locators.inputs.segmentId,
+        this.locators.inputs.segmentName,
+      ],
+      this.locators.results.root, // waits for results card to hide
+    );
   }
 
-  // ===============================
-  // HIGH LEVEL FLOWS
-  // ===============================
+  // =====================================================
+  // HIGH LEVEL SEARCH FLOWS
+  // =====================================================
+
   async searchBySegmentId(customerId, segmentId, timeout = 60000) {
     await this.resetFormState();
+
     await this.fillCustomerId(customerId);
     await this.fillSegmentId(segmentId);
     await this.submitSearch();
-    return await this.waitForResults(timeout);
+    const response = await this.submitAndWaitForResponse(
+      () => this.submitSearch(),
+      "/screening",
+      timeout,
+    );
+
+    return this.responseHandler.normalizeResponse(response);
   }
 
   async searchBySegmentName(customerId, segmentName, timeout = 60000) {
     await this.resetFormState();
+
+    const response = await this.submitAndWaitForResponse(
+      () => this.submitSearch(),
+      "/screening",
+      timeout,
+    );
+
     await this.fillCustomerId(customerId);
     await this.fillSegmentName(segmentName);
     await this.submitSearch();
-    return await this.waitForResults(timeout);
+
+    return this.responseHandler.normalizeResponse(response);
   }
 
-  // ===============================
-  // RESULTS RESOLUTION (FIXED)
-  // ===============================
-  async waitForResults(timeout = 60000) {
-    // CHANGE 1: Capture API response
-    const responsePromise = this.page.waitForResponse(
-      (res) =>
-        res.url().includes("/screening") && res.request().method() === "POST",
-      { timeout },
-    );
+  // =====================================================
+  // UI DATA EXTRACTION
+  // =====================================================
 
-    await this.submitSearch();
-
-    const response = await responsePromise;
-
-    let json;
-    try {
-      json = await response.json();
-    } catch (e) {
-      throw new Error("[waitForResults] Failed to parse JSON response");
-    }
-    console.log("🔎 SCREENING API RESPONSE:", JSON.stringify(json, null, 2));
-
-    // Normalize ALL backend response variations
-    if (json.detail) {
-      return {
-        state: "error",
-        message: json.detail,
-        data: json,
-      };
-    }
-
-    // ❌ SOFT ERROR CASE
-    if (json.error) {
-      return {
-        state: "error",
-        message: json.error,
-        data: json,
-      };
-    }
-
-    // ⚠️ validation / business rejection
-    if (json.success === false) {
-      return {
-        state: "validation",
-        message: json.message,
-        data: json,
-      };
-    }
-    // SUCCESS CASE normalization
-    if (typeof json.in_segment === "boolean") {
-      return {
-        state: json.in_segment ? "results" : "not-in-segment",
-        data: json,
-      };
-    }
-    // fallback (never break test silently)
-    return {
-      state: "unknown",
-      message: "Unexpected response structure",
-      data: json,
-    };
-  }
-  // ===============================
-  // DATA EXTRACTION (UNCHANGED)
-  // ===============================
   async captureResults() {
-    const root = this.page.locator(this.locators.results.root);
-    await root.waitFor({ state: "visible", timeout: 15000 });
-
-    const result = {};
-
-    const rows = root.locator("div.space-y-2");
-    const count = await rows.count();
-
-    for (let i = 0; i < count; i++) {
-      const row = rows.nth(i);
-
-      const label = await row
-        .locator("label")
-        .textContent()
-        .catch(() => null);
-      const value = await row
-        .locator("p, span")
-        .first()
-        .textContent()
-        .catch(() => null);
-
-      if (!label || !value) continue;
-
-      const key = label.trim().toLowerCase().replace(/\s+/g, "_");
-
-      result[key] = value.trim();
-    }
+    const L = this.locators.results;
 
     const status = await this.page
-      .locator("text=Customer is in segment")
-      .or(this.page.locator("text=Customer is not in segment"))
+      .getByText("Customer is in segment", { exact: false })
+      .or(this.page.getByText("Customer is not in segment", { exact: false }))
       .first()
-      .textContent()
+      .innerText()
       .catch(() => null);
 
-    result.status = status;
-
-    return result;
+    return {
+      status,
+      customerId: await this.readText(L.customerId),
+      segmentId: await this.readText(L.segmentId),
+      segmentName: await this.readText(L.segmentName),
+      segmentRowId: await this.readText(L.segmentRowId),
+      patternStatus: await this.readText(L.patternStatus),
+      riskScore: await this.readText(L.riskScore),
+      riskTier: await this.readText(L.riskTier),
+      footerMessage: await this.readText(L.footerMessage),
+    };
   }
+
+  // =====================================================
+  // HELPERS
+  // =====================================================
 
   async getSegmentValidationMessage() {
-    const el = this.page.locator(this.locators.validation.missingSegment);
-    await el.waitFor({ state: "visible", timeout: 10000 });
-
-    return (await el.textContent())?.trim();
+    return await this.getTextContent(this.locators.validation.missingSegment);
   }
 }
-
 export { ScreeningPage };

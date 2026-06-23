@@ -1,0 +1,119 @@
+
+🔐 [Worker] Initialising shared page – token injection once
+AFTER AUTH FLOW (worker): http://3.216.34.218:9192/picr/dashboard/portfolio-overview
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 630,
+  requestId: '671a0fee-4346-43d7-ad32-b97c6a9dee4c',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 368,
+  requestId: 'aa589445-6836-48aa-8444-0c04ea174410',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+🔐 baseAPI token length: 2195
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'loan_tenure' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'product_group' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 1094,
+  requestId: 'ecf3a8ef-0bc4-4a82-af53-93f15a111065',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}
+🧪 Selected Attribute: {
+  column_name: 'loan_tenure',
+  mode: 'bins',
+  selected_values: undefined,
+  numeric_bins: [
+    { min: 0, max: 33, label: '0-33' },
+    { min: 34, max: 66, label: '34-66' },
+    { min: 67, max: 100, label: '67-100' }
+  ]
+}
+🧪 Selected Attribute: {
+  column_name: 'product_group',
+  mode: 'distinct_values',
+  selected_values: [ 'Business Loan' ],
+  numeric_bins: undefined
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments',
+  status: 200,
+  duration: 509,
+  requestId: 'ca20f2a1-43e9-41f0-9539-ae635db3941e',
+  attempt: 0
+}
+✅ Segment created — id: 716
+✅ Validation message: Please enter either Segment ID or Segment Name
+🔎 SCREENING API RESPONSE: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 716,
+  "segment_name": "Seg_loan_table_coop_280710",
+  "segment_row_id": 284654,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}
+✅ Search by ID — results
+🔎 SCREENING API RESPONSE: {
+  "success": true,
+  "message": "Screening completed successfully",
+  "customer_id": "68372393f1cd711a709c7a7c",
+  "in_segment": true,
+  "segment_id": 716,
+  "segment_name": "Seg_loan_table_coop_280710",
+  "segment_row_id": 284654,
+  "risk_score": 62,
+  "risk_tier": "medium",
+  "segment_status": "active",
+  "credit_score_cutoff": null,
+  "error": null
+}
+✅ Search by name — results
+🔎 SCREENING API RESPONSE: {
+  "detail": "Segment not found"
+}
+✅ Customer screening journey completed

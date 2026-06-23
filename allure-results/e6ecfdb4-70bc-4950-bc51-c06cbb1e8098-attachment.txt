@@ -1,0 +1,154 @@
+
+🔐 [Worker] Initialising shared page – token injection once
+AFTER AUTH FLOW (worker): http://3.216.34.218:9192/picr/dashboard/portfolio-overview
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/loan-data/tables',
+  status: 200,
+  duration: 558,
+  requestId: '92f21600-0d62-4974-993f-e75fc2869917',
+  attempt: 0
+}
+{ type: 'TABLE_SELECTED', table: 'loan_table_coop' }
+{
+  type: 'API_CALL',
+  method: 'GET',
+  url: '/api/v1/segments/columns',
+  status: 200,
+  duration: 291,
+  requestId: '92457fa5-ea30-4a50-818a-22795fae8468',
+  attempt: 0
+}
+{
+  type: 'SERVICE_INITIALIZED',
+  table: 'loan_table_coop',
+  columns: 55,
+  schemaHash: '63fe1111'
+}
+🔐 baseAPI token length: 2195
+
+📍 [SegmentPage] Navigating to Segment Manager...
+✅ Found parent "Segment Manager" button
+✅ Expanded sub‑menu
+✅ Found "Segments" link
+✅ Segment page ready
+✅ Selected segment: Segment-COOP
+✅ Selected segment: NPL_91Days
+🎲 Randomly selected: NPL_91Days
+Selected segment: NPL_91Days
+✅ Selected segment: Segment-COOP
+✅ Filtered random column "Education Level" with ZZZ_NO_MATCH
+Filtered using column: Education Level
+✅ Cleared all filters
+✅ Selected segment: Segment-COOP
+{
+  type: 'ATTRIBUTE_SELECTOR_INIT',
+  preferredNumeric: [],
+  preferredCategorical: []
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'interest_collected' ],
+  poolType: 'numeric'
+}
+{
+  type: 'ATTRIBUTE_SELECTED',
+  selected: [ 'Zone_branch' ],
+  poolType: 'categorical'
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments/distinct-values',
+  status: 200,
+  duration: 667,
+  requestId: 'b5371823-3dfa-4da6-9fe9-233e5716bde5',
+  attempt: 0
+}
+{
+  type: 'METRIC_WHITELIST_LOADED',
+  table: 'loan_table_coop',
+  count: 11
+}
+🧪 Selected Attribute: {
+  column_name: 'interest_collected',
+  mode: 'bins',
+  selected_values: undefined,
+  numeric_bins: [
+    { min: 0, max: 25, label: '0-25' },
+    { min: 26, max: 50, label: '26-50' },
+    { min: 51, max: 75, label: '51-75' },
+    { min: 76, max: 100, label: '76-100' }
+  ]
+}
+🧪 Selected Attribute: {
+  column_name: 'Zone_branch',
+  mode: 'distinct_values',
+  selected_values: [
+    'Db ,Debre Birhan Branch',
+    'Gurage\nGurage  ,Wolkite Branch',
+    'Gurage  ,Butajira Branch',
+    'Sodo\nSodo ,Wolayita Soddo Branch',
+    'አራዳ\nአራዳ ,Gonder Branch'
+  ],
+  numeric_bins: undefined
+}
+{
+  type: 'API_CALL',
+  method: 'POST',
+  url: '/api/v1/segments',
+  status: 200,
+  duration: 511,
+  requestId: '68358fa9-b3d8-4f05-a705-bd8dee02ae32',
+  attempt: 0
+}
+created segment name: {
+  id: 740,
+  name: 'Seg_loan_table_coop_885167',
+  description: '',
+  config: {
+    attributes: [ [Object], [Object] ],
+    table_name: 'loan_table_coop',
+    target_metrics: [ 'total_collected' ],
+    derived_columns: null
+  },
+  status: 'active',
+  analysis_result: null,
+  created_by: 'admin',
+  created_at: '2026-06-23T06:41:25.898540',
+  updated_at: '2026-06-23T06:41:25.898540'
+}
+All segment names: [
+  'Select a segment...',
+  'Seg_loan_table_coop_885167',
+  'test1',
+  'Demo',
+  'new segment',
+  'Segment-COOP',
+  'bunna_segment',
+  'demo_segment',
+  'segmentM',
+  'Test_region_product2',
+  'First Segment',
+  'Test_region_product',
+  'Wegagen',
+  'NPL_91Days',
+  'High_borrower_branch',
+  'Michu Kiya Formal Performance in Sidama Region',
+  'NPL (90+) segment',
+  'Portfolio at Risk',
+  'IDD'
+]
+✅ Selected segment: Seg_loan_table_coop_885167
+All segment names after delete: [ 'Select a segment...' ]
+✅ Selected segment: Segment-COOP
+✅ Clicked View on row with text: PRIMARY
+Loan-Id: 00012a8d-38c5-46bc-b97e-104040d29aeb
+segmentId: 154
+patternId: 281049
+loanCount: 40153
+✅ Clicked Manage on row with text: PRIMARY
+approved loans before credit score change: 18030
+approved loans after credit score change: 18021
+✅ Full user journey completed successfully.
